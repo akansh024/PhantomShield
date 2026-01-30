@@ -12,12 +12,32 @@ The system analyzes user behavior following login and assigns a risk score based
 - Minimal impact on legitimate user experience
 
 ## Technologies Used
-- Python
-- Flask / FastAPI
+
+### Frontend
 - React
-- MongoDB / SQLite
-- Scikit-learn
+
+### Backend
+- Python
+- FastAPI
+
+### Authentication & Security
 - JWT (JSON Web Tokens)
+
+### Databases
+
+#### PostgreSQL
+- Real users  
+- Real application data  
+- Transactional integrity  
+
+#### MongoDB
+- Decoy (fake) data  
+- Forensic logs  
+- Telemetry & attacker behavior
+# Machine Learning
+- Scikit‑learn
+# DevOps
+- Docker
 
 ## Project Scope
 PhantomShield is implemented as an application-level security architecture and is intended as a proof-of-concept for integrating deception-based defenses into modern web applications. The project demonstrates how post-authentication threats can be mitigated without relying solely on blocking or alerting mechanisms.
