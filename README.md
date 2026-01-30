@@ -14,7 +14,7 @@ The system analyzes user behavior following login and assigns a risk score based
 ## Technologies Used
 - Python
 - Flask / FastAPI
-- HTML, CSS, JavaScript
+- React
 - MongoDB / SQLite
 - Scikit-learn
 - JWT (JSON Web Tokens)
