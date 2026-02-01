@@ -34,9 +34,9 @@ The system analyzes user behavior following login and assigns a risk score based
 - Decoy (fake) data  
 - Forensic logs  
 - Telemetry & attacker behavior
-# Machine Learning
+### Machine Learning
 - Scikit‑learn
-# DevOps
+### DevOps
 - Docker
 
 ## Project Scope
