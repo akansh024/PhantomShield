@@ -21,7 +21,7 @@ The system analyzes user behavior following login and assigns a risk score based
 - FastAPI
 
 ### Authentication & Security
-- JWT(JSON Web Tokens)
+- JWT (JSON Web Tokens)
 
 ### Databases
 
