@@ -1,4 +1,5 @@
 fastapi
 uvicorn
+email-validator
 passlib[bcrypt]
 python-jose
