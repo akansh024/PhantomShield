@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.api.auth.auth_routes import router as auth_router
-from app.test import router as test_router
+from app.tests.test import router as test_router
 
 app = FastAPI(title="PhantomShield")
 
