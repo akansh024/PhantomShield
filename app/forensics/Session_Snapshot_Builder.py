@@ -4,24 +4,11 @@ from datetime import datetime
 
 
 class SessionSnapshotBuilder:
-    """
-    Pure reconstruction layer.
-    Builds a deterministic session snapshot from decoy_events.
-    """
 
     def __init__(self, repository):
-        """
-        repository: storage abstraction.
-        Must implement:
-            get_events_by_session(session_id: str) -> List[Dict]
-        """
         self.repository = repository
 
-    async def build_snapshot(self, session_id: str) -> Dict[str, Any]:
-        """
-        Reconstructs a session snapshot from decoy events.
-        No mutation. No detection. No scoring.
-        """
+    async def build(self, session_id: str) -> Dict[str, Any]:
 
         events: List[Dict] = await self.repository.get_events_by_session(session_id)
 
@@ -37,7 +24,6 @@ class SessionSnapshotBuilder:
                 "last_seen": None
             }
 
-        # Ensure deterministic ordering
         events = sorted(events, key=lambda e: e["timestamp"])
 
         first_seen: datetime = events[0]["timestamp"]
@@ -45,17 +31,19 @@ class SessionSnapshotBuilder:
 
         duration_seconds = int((last_seen - first_seen).total_seconds())
 
-        unique_routes = sorted(set(e.get("route") for e in events if e.get("route")))
+        unique_routes = sorted(
+            set(e.get("route") for e in events if e.get("route"))
+        )
 
         status_distribution = dict(
-            Counter(e.get("status_code") for e in events if e.get("status_code"))
+            Counter(e.get("status_code") for e in events if e.get("status_code") is not None)
         )
 
         canary_trigger_count = sum(
             1 for e in events if e.get("canary_triggered") is True
         )
 
-        snapshot = {
+        return {
             "session_id": session_id,
             "total_events": len(events),
             "duration_seconds": duration_seconds,
@@ -63,7 +51,5 @@ class SessionSnapshotBuilder:
             "status_distribution": status_distribution,
             "canary_trigger_count": canary_trigger_count,
             "first_seen": first_seen,
-            "last_seen": last_seen
+            "last_seen": last_seen,
         }
-
-        return snapshot
