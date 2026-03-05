@@ -18,6 +18,25 @@ class SessionSnapshotBuilder:
                 "total_events": 0,
                 "duration_seconds": 0,
                 "unique_routes": [],
+                "route_count": 0,
+                "status_distribution": {},
+                "canary_trigger_count": 0,
+                "first_seen": None,
+                "last_seen": None
+            }
+
+        events = [
+            e for e in events
+            if isinstance(e.get("timestamp"), datetime)
+        ]
+
+        if not events:
+            return {
+                "session_id": session_id,
+                "total_events": 0,
+                "duration_seconds": 0,
+                "unique_routes": [],
+                "route_count": 0,
                 "status_distribution": {},
                 "canary_trigger_count": 0,
                 "first_seen": None,
@@ -35,8 +54,14 @@ class SessionSnapshotBuilder:
             set(e.get("route") for e in events if e.get("route"))
         )
 
+        route_count = len(unique_routes)
+
         status_distribution = dict(
-            Counter(e.get("status_code") for e in events if e.get("status_code") is not None)
+            Counter(
+                e.get("response_status")
+                for e in events
+                if e.get("response_status") is not None
+            )
         )
 
         canary_trigger_count = sum(
@@ -48,6 +73,7 @@ class SessionSnapshotBuilder:
             "total_events": len(events),
             "duration_seconds": duration_seconds,
             "unique_routes": unique_routes,
+            "route_count": route_count,
             "status_distribution": status_distribution,
             "canary_trigger_count": canary_trigger_count,
             "first_seen": first_seen,
