@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+::selection{
+    @apply bg-cyan-400/30 text-slate-300;
+}
+
+/* Brand colors
+bg-cyan-400/30
+text-slate-300
+*/

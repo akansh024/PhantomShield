@@ -3,3 +3,5 @@ uvicorn
 email-validator
 passlib[bcrypt]
 python-jose
+pymongo
+motor
