@@ -1,936 +1,573 @@
-import { useState, useEffect, useRef } from "react";
+import { useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
+import {
+  ShieldCheck, GitMerge, ScanLine, Layers,
+  Lock, Zap, Eye, Database, Terminal,
+  FlaskConical, Network, FileSearch,
+} from "lucide-react";
 
-/* ─────────────────────────────────────────────────────────────────
-   PHANTOMSHIELD — WHY CHOOSE US
-   Aesthetic: Darkroom Intelligence Brief meets Luxury Threat Report.
-   Think a $50M cybersecurity firm's annual showcase — brutally
-   confident, visually dominant, zero filler. Each reason is a
-   "weapon spec" with live data visuals. Center piece is a rotating
-   3D hexagonal threat wheel. Background: encrypted noise + slow
-   heat-map bleed. Typography: massive, editorial, aggressive.
-───────────────────────────────────────────────────────────────── */
+const GRAIN = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
-function useInView(threshold = 0.1) {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setInView(true); },
-      { threshold }
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  return [ref, inView];
-}
-
-// ── Animated counter ─────────────────────────
-function Counter({ to, suffix = "", duration = 1800, inView }) {
-  const [val, setVal] = useState(0);
-  const started = useRef(false);
-  useEffect(() => {
-    if (!inView || started.current) return;
-    started.current = true;
-    const start = performance.now();
-    const tick = (now) => {
-      const p = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - p, 3);
-      setVal(Math.round(ease * to));
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [inView]);
-  return <>{val}{suffix}</>;
-}
-
-// ── Hex SVG ──────────────────────────────────
-function Hex({ size = 60, fill = "none", stroke = "#22d3ee", opacity = 1, rotate = 0 }) {
-  const r = size / 2;
-  const pts = Array.from({ length: 6 }, (_, i) => {
-    const a = (Math.PI / 180) * (60 * i - 30);
-    return `${r + r * Math.cos(a)},${r + r * Math.sin(a)}`;
-  }).join(" ");
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: `rotate(${rotate}deg)`, opacity }}>
-      <polygon points={pts} fill={fill} stroke={stroke} strokeWidth="1" />
-    </svg>
-  );
-}
-
-// ── Radial bar ────────────────────────────────
-function RadialBar({ pct, color, size = 56, inView }) {
-  const r = (size - 6) / 2;
-  const circ = 2 * Math.PI * r;
-  const [dash, setDash] = useState(0);
-  useEffect(() => {
-    if (!inView) return;
-    setTimeout(() => setDash(circ * pct), 200);
-  }, [inView]);
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={color} strokeWidth="3"
-        strokeDasharray={`${circ}`}
-        strokeDashoffset={circ - dash}
-        strokeLinecap="round"
-        style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)" }}
-      />
-    </svg>
-  );
-}
-
-// ── Weapon Card ───────────────────────────────
-const WEAPONS = [
+/* ─── FEATURE DATA ─────────────────────────────────────────── */
+const FEATURES = [
+  /* ── HERO (large 2×2) ── */
   {
-    id: "W-01",
-    title: "Deception-First Architecture",
-    sub: "Not a bolt-on. Not a plugin.",
-    body: "Built from the ground up around active deception. Every layer — session, middleware, policy, database — is engineered to sustain a parallel phantom reality indefinitely.",
-    stat: { n: 100, suffix: "%", label: "Architectural Isolation" },
-    radial: 1.0,
+    id: "F-01", size: "hero",
+    icon: ShieldCheck,
     color: "#22d3ee",
-    tag: "CORE DOCTRINE",
-    bars: [
-      { label: "Session Isolation", pct: 1.0 },
-      { label: "DB Segregation", pct: 1.0 },
-      { label: "API Fidelity", pct: 0.97 },
-    ],
-    accent: "from-cyan-500/10 to-transparent",
-    border: "rgba(34,211,238,0.2)",
+    title: "Deception-First Architecture",
+    tagline: "Not a bolt-on. The entire foundation.",
+    body: "Every layer — session, middleware, risk, policy, database — is engineered around active deception from the first import. The separation between real and phantom is structural, not configured.",
+    specs: ["APP LAYER · 7 TIERS", "ISOLATION · STRUCTURAL", "CROSSOVER PATHS · 0"],
+    stat: { v: "7", l: "Isolated Layers" },
+    accent: false,
   },
+  /* ── TALL ── */
   {
-    id: "W-02",
-    title: "One-Way Escalation Law",
-    sub: "Physics, not policy.",
-    body: "Once a session crosses into DECOY state it cannot return. This isn't a rule stored in a config file — it's an architectural invariant enforced at every layer simultaneously.",
-    stat: { n: 0, suffix: "", label: "Reversal Events Possible" },
-    radial: 0.0,
+    id: "F-02", size: "tall",
+    icon: Lock,
+    color: "#22d3ee",
+    title: "Auth ≠ Trust",
+    tagline: "Identity proven. Trust unassigned.",
+    body: "JWT proves who you are. A server-side Redis session decides what you're allowed to do. The two are permanently, architecturally decoupled.",
+    specs: ["JWT · RS256", "SESSION STORE · REDIS", "TTL · CONFIGURABLE"],
+    stat: { v: "0", l: "Trust from Token" },
+    accent: false,
+  },
+  /* ── WIDE ── */
+  {
+    id: "F-03", size: "wide",
+    icon: GitMerge,
     color: "#ef4444",
-    tag: "HARD CONSTRAINT",
-    bars: [
-      { label: "REAL → DECOY", pct: 1.0 },
-      { label: "DECOY → REAL", pct: 0.0 },
-      { label: "False Reversion", pct: 0.0 },
-    ],
-    accent: "from-red-500/10 to-transparent",
-    border: "rgba(239,68,68,0.2)",
+    title: "One-Way Escalation Law",
+    tagline: "REAL → DECOY. Irreversible. Absolute.",
+    body: "Escalation is not a rule stored in config — it is a non-existent code path. No admin flag, no runtime condition, no override can return a session to the real system once escalated.",
+    specs: ["DIRECTION · REAL → DECOY", "REVERSAL PATHS · 0", "ENFORCEMENT · ARCH-LEVEL"],
+    stat: { v: "∞", l: "Deception Duration" },
+    accent: false,
   },
+  /* ── STANDARD ── */
   {
-    id: "W-03",
-    title: "Advisory Risk Engine",
-    sub: "Scored. Never sentenced.",
-    body: "The risk scorer observes and advises. The policy engine alone holds routing authority. This separation prevents a single compromised module from altering attacker fate.",
-    stat: { n: 12, suffix: " signals", label: "Behavioral Indicators" },
-    radial: 0.74,
+    id: "F-04", size: "standard",
+    icon: ScanLine,
     color: "#f59e0b",
-    tag: "SEPARATION OF CONCERNS",
-    bars: [
-      { label: "Signal Coverage", pct: 0.92 },
-      { label: "False Positive Rate", pct: 0.04 },
-      { label: "Decision Latency", pct: 0.02 },
-    ],
-    accent: "from-amber-500/10 to-transparent",
-    border: "rgba(245,158,11,0.2)",
+    title: "Passive Telemetry",
+    tagline: "12 signals. Sub-2ms. Silent.",
+    body: "API enumeration depth, navigation velocity, payload shape, and endpoint access patterns — all extracted below attacker detection threshold.",
+    specs: ["SIGNALS · 12 TYPES", "OVERHEAD · <2ms", "MODE · PASSIVE"],
+    stat: null,
+    accent: false,
   },
+  /* ── STANDARD ── */
   {
-    id: "W-04",
-    title: "Full-Spectrum Forensics",
-    sub: "Every move. Recorded.",
-    body: "No interaction inside the decoy system escapes logging. Session ID, endpoint, payload, timing, canary status — all captured, indexed, and reconstructed into a complete attacker timeline.",
-    stat: { n: 100, suffix: "%", label: "Decoy Interaction Coverage" },
-    radial: 1.0,
+    id: "F-05", size: "standard",
+    icon: Layers,
+    color: "#f59e0b",
+    title: "Advisory Risk Engine",
+    tagline: "Scores advice. Never sentences.",
+    body: "Risk scorer calculates 0–1 threat probability and nothing else. Routing authority belongs exclusively to the policy engine — single responsibility enforced architecturally.",
+    specs: ["RANGE · 0.0–1.0", "ROLE · ADVISORY", "DECAY · TEMPORAL"],
+    stat: null,
+    accent: false,
+  },
+  /* ── ACCENT (large, glowing) ── */
+  {
+    id: "F-06", size: "accent",
+    icon: Eye,
     color: "#a78bfa",
-    tag: "INTELLIGENCE CAPTURE",
-    bars: [
-      { label: "Payload Capture", pct: 1.0 },
-      { label: "Timeline Fidelity", pct: 0.99 },
-      { label: "Canary Coverage", pct: 0.96 },
-    ],
-    accent: "from-violet-500/10 to-transparent",
-    border: "rgba(167,139,250,0.2)",
+    title: "Full-Spectrum Forensics",
+    tagline: "Every move. Every payload. Reconstructed.",
+    body: "Session ID, endpoint, headers, payload, timing, and canary status — all captured at 100% coverage and indexed into a reconstructible attacker timeline.",
+    specs: ["COVERAGE · 100%", "FIELDS · SESSION · ENDPOINT · PAYLOAD · TS", "STORE · MONGODB"],
+    stat: { v: "100%", l: "Capture Rate" },
+    accent: true,
+  },
+  /* ── STANDARD ── */
+  {
+    id: "F-07", size: "standard",
+    icon: Database,
+    color: "#10b981",
+    title: "Hard DB Isolation",
+    tagline: "Postgres and Mongo. Never bridged.",
+    body: "No shared ORM, no shared connection pool, no import path between real and decoy databases. Structural isolation that cannot be misconfigured.",
+    specs: ["REAL DB · POSTGRESQL", "DECOY DB · MONGODB", "BRIDGE PATHS · 0"],
+    stat: null,
+    accent: false,
+  },
+  /* ── STANDARD ── */
+  {
+    id: "F-08", size: "standard",
+    icon: FlaskConical,
+    color: "#10b981",
+    title: "Attack Simulation",
+    tagline: "Three simulators. Built in.",
+    body: "api_enumeration · sensitive_probe · slow_attacker — each produces real telemetry against the live stack, verifying risk scoring, policy escalation, and forensic capture.",
+    specs: ["SCENARIOS · 3", "OUTPUT · REAL TELEMETRY", "PATH · attacks/scenarios/"],
+    stat: null,
+    accent: false,
+  },
+  /* ── WIDE ── */
+  {
+    id: "F-09", size: "wide",
+    icon: Network,
+    color: "#22d3ee",
+    title: "Frontend Deception Transparency",
+    tagline: "The UI never knows. The attacker never knows.",
+    body: "The React frontend calls normal API endpoints. Routing decisions are entirely server-side. The interface has zero knowledge of real vs decoy state — preserving the illusion completely for any session duration.",
+    specs: ["ROUTING · SERVER-SIDE ONLY", "FRONTEND AWARENESS · NONE", "STACK · REACT · VITE"],
+    stat: { v: "0", l: "Client-Side Tells" },
+    accent: false,
+  },
+  /* ── STANDARD ── */
+  {
+    id: "F-10", size: "standard",
+    icon: Zap,
+    color: "#22d3ee",
+    title: "Canary Trap System",
+    tagline: "Bait that bites back.",
+    body: "38+ seeded decoy endpoints. A single access arms deep forensic mode and compounds risk score immediately with no false positive pathway.",
+    specs: ["ENDPOINTS · 38+", "FALSE POSITIVES · 0", "MODULE · canary/"],
+    stat: null,
+    accent: false,
+  },
+  /* ── STANDARD ── */
+  {
+    id: "F-11", size: "standard",
+    icon: Terminal,
+    color: "#a78bfa",
+    title: "Policy Engine Authority",
+    tagline: "One decision. One component.",
+    body: "The policy engine holds sole routing authority. No other module, middleware, or external input can set routing_state. Clean, auditable, and architecturally guaranteed.",
+    specs: ["AUTHORITY · EXCLUSIVE", "INPUTS · RISK SCORE", "MODULE · policy/engine.py"],
+    stat: null,
+    accent: false,
+  },
+  /* ── STANDARD ── */
+  {
+    id: "F-12", size: "standard",
+    icon: FileSearch,
+    color: "#a78bfa",
+    title: "Threat Intelligence Timeline",
+    tagline: "Attack patterns. Fully reconstructed.",
+    body: "Every canary hit, every payload, every timing anomaly is indexed into a chronological attacker timeline. Intelligence compounds the longer they operate.",
+    specs: ["RESOLUTION · PER-REQUEST", "MODULE · forensics/timeline.py", "EXPORT · JSON"],
+    stat: null,
+    accent: false,
   },
 ];
 
-function WeaponCard({ w, index }) {
-  const [ref, inView] = useInView(0.12);
-  const [hovered, setHovered] = useState(false);
+/* ─── CARD COMPONENT ─────────────────────────────────────── */
+function FeatureCard({ feat, delay = 0, inView }) {
+  const [hov, setHov] = useState(false);
+  const Icon = feat.icon;
+  const c = feat.color;
+
+  const isHero   = feat.size === "hero";
+  const isAccent = feat.accent;
+  const isTall   = feat.size === "tall";
 
   return (
-    <div
-      ref={ref}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+    <motion.div
+      initial={{ opacity: 0, y: 28 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      className="relative overflow-hidden h-full"
       style={{
-        position: "relative",
-        border: `1px solid ${hovered ? w.color + "60" : w.border}`,
-        background: hovered
-          ? `linear-gradient(135deg, ${w.color}08 0%, rgba(0,0,0,0) 60%)`
-          : "rgba(0,0,0,0.3)",
-        padding: "32px 28px",
-        transition: "all 0.35s ease",
-        opacity: inView ? 1 : 0,
-        transform: inView ? "none" : "translateY(24px)",
-        transitionDelay: `${index * 100}ms`,
+        background: isAccent
+          ? `linear-gradient(145deg, ${c}14 0%, rgba(255,255,255,0.03) 60%)`
+          : hov
+          ? `linear-gradient(145deg, ${c}09 0%, rgba(255,255,255,0.028) 100%)`
+          : "rgba(255,255,255,0.026)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: `1px solid ${hov || isAccent ? `${c}${isAccent ? "35" : "28"}` : "rgba(255,255,255,0.08)"}`,
+        borderRadius: 0,
+        boxShadow: hov
+          ? `0 0 36px ${c}18, 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)`
+          : isAccent
+          ? `0 0 48px ${c}22, 0 16px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)`
+          : "0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)",
+        transition: "all 0.32s ease",
         cursor: "default",
-        backdropFilter: "blur(8px)",
-        overflow: "hidden",
+        padding: isHero ? "36px" : isTall ? "32px" : "28px",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Diagonal scan on hover */}
-      {hovered && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: `linear-gradient(105deg, transparent 40%, ${w.color}08 50%, transparent 60%)`,
-            animation: "scanDiag 0.8s ease forwards",
-            pointerEvents: "none",
-          }}
+      {/* Grain overlay */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: GRAIN,
+          backgroundSize: "140px",
+          opacity: 0.03,
+          mixBlendMode: "overlay",
+        }}
+      />
+
+      {/* Top glow on hover */}
+      <motion.div
+        className="absolute -top-20 -right-20 rounded-full pointer-events-none"
+        animate={{ opacity: hov ? 1 : isAccent ? 0.6 : 0, scale: hov ? 1 : 0.8 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          width: isHero ? 280 : 200,
+          height: isHero ? 280 : 200,
+          background: `radial-gradient(circle, ${c}20 0%, transparent 65%)`,
+        }}
+      />
+
+      {/* Accent left edge line */}
+      {isAccent && (
+        <div className="absolute left-0 top-6 bottom-6 w-[2px]"
+          style={{ background: `linear-gradient(to bottom, transparent, ${c}70, transparent)` }}
         />
       )}
 
-      {/* Ghost ID */}
-      <div
-        style={{
-          position: "absolute",
-          top: -10,
-          right: -8,
-          fontFamily: "'Rajdhani', sans-serif",
-          fontSize: 90,
-          fontWeight: 900,
-          color: "transparent",
-          WebkitTextStroke: `1px ${w.color}10`,
-          lineHeight: 1,
-          pointerEvents: "none",
-          letterSpacing: "-0.04em",
-        }}
-      >
-        {w.id}
-      </div>
+      {/* CONTENT */}
+      <div className="relative z-10 flex flex-col h-full">
 
-      {/* Tag */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <span
-          style={{
-            fontFamily: "'Share Tech Mono', monospace",
-            fontSize: 9,
-            letterSpacing: "0.25em",
-            color: w.color,
-            border: `1px solid ${w.color}30`,
-            padding: "3px 8px",
-            background: `${w.color}0a`,
-          }}
-        >
-          {w.tag}
-        </span>
-        <div style={{ position: "relative", width: 56, height: 56 }}>
-          <RadialBar pct={w.radial} color={w.color} size={56} inView={inView} />
-          <div
+        {/* Header row */}
+        <div className="flex items-start justify-between mb-5">
+          {/* Icon */}
+          <motion.div
+            animate={{
+              boxShadow: hov ? `0 0 20px ${c}45` : `0 0 6px ${c}20`,
+              background: hov ? `${c}1a` : `${c}0f`,
+              borderColor: hov ? `${c}45` : `${c}22`,
+            }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-center border backdrop-blur-sm flex-shrink-0"
             style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: "'Share Tech Mono', monospace",
-              fontSize: 9,
-              color: w.color,
+              width: isHero ? 56 : 48,
+              height: isHero ? 56 : 48,
+              borderRadius: 14,
             }}
           >
-            {Math.round(w.radial * 100)}%
-          </div>
-        </div>
-      </div>
-
-      {/* Title */}
-      <h3
-        style={{
-          fontFamily: "'Rajdhani', sans-serif",
-          fontSize: "1.45rem",
-          fontWeight: 700,
-          color: "#e2e8f0",
-          letterSpacing: "0.02em",
-          lineHeight: 1.1,
-          marginBottom: 4,
-        }}
-      >
-        {w.title}
-      </h3>
-      <div
-        style={{
-          fontFamily: "'Share Tech Mono', monospace",
-          fontSize: 10,
-          color: w.color,
-          letterSpacing: "0.1em",
-          marginBottom: 14,
-          opacity: 0.7,
-        }}
-      >
-        {w.sub}
-      </div>
-
-      {/* Body */}
-      <p
-        style={{
-          fontFamily: "'Rajdhani', sans-serif",
-          fontSize: "0.92rem",
-          fontWeight: 300,
-          color: "rgba(148,163,184,0.7)",
-          lineHeight: 1.65,
-          marginBottom: 20,
-        }}
-      >
-        {w.body}
-      </p>
-
-      {/* Bar metrics */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {w.bars.map((b) => (
-          <div key={b.label}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: "0.12em",
-                  color: "rgba(100,116,139,1)",
-                  textTransform: "uppercase",
-                }}
-              >
-                {b.label}
-              </span>
-              <span
-                style={{
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: 9,
-                  color: b.pct > 0 ? w.color : "rgba(100,116,139,0.5)",
-                }}
-              >
-                {b.pct === 0 ? "—" : `${Math.round(b.pct * 100)}%`}
-              </span>
-            </div>
-            <div
-              style={{
-                height: 2,
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: 1,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  height: "100%",
-                  width: inView ? `${b.pct * 100}%` : "0%",
-                  background: b.pct === 0
-                    ? "rgba(100,116,139,0.2)"
-                    : `linear-gradient(90deg, ${w.color}80, ${w.color})`,
-                  transition: "width 1.2s cubic-bezier(0.4,0,0.2,1) 0.4s",
-                  boxShadow: b.pct > 0 ? `0 0 6px ${w.color}60` : "none",
-                }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Big number */}
-      <div
-        style={{
-          marginTop: 20,
-          paddingTop: 16,
-          borderTop: `1px solid ${w.color}15`,
-          display: "flex",
-          alignItems: "baseline",
-          gap: 4,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'Rajdhani', sans-serif",
-            fontSize: "2.4rem",
-            fontWeight: 800,
-            color: w.color,
-            lineHeight: 1,
-          }}
-        >
-          <Counter to={w.stat.n} suffix={w.stat.suffix} inView={inView} />
-        </span>
-        <span
-          style={{
-            fontFamily: "'Share Tech Mono', monospace",
-            fontSize: 9,
-            color: "rgba(100,116,139,0.8)",
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            marginLeft: 4,
-          }}
-        >
-          {w.stat.label}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ── Central Threat Wheel ──────────────────────
-function ThreatWheel({ inView }) {
-  const [angle, setAngle] = useState(0);
-  const rafRef = useRef();
-  useEffect(() => {
-    if (!inView) return;
-    const start = performance.now();
-    const tick = (now) => {
-      setAngle(((now - start) * 0.018) % 360);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [inView]);
-
-  const layers = [
-    { r: 110, count: 6, color: "#22d3ee", labels: ["AUTH", "JWT", "SESSION", "RISK", "POLICY", "ROUTE"] },
-    { r: 70,  count: 4, color: "#f59e0b", labels: ["SCORE", "DECAY", "RULES", "THRESHOLD"] },
-    { r: 36,  count: 3, color: "#ef4444", labels: ["DECOY", "LOG", "CANARY"] },
-  ];
-
-  return (
-    <div
-      style={{
-        position: "relative",
-        width: 280,
-        height: 280,
-        margin: "0 auto",
-        opacity: inView ? 1 : 0,
-        transition: "opacity 1s ease",
-      }}
-    >
-      <svg width="280" height="280" viewBox="0 0 280 280">
-        <defs>
-          <filter id="glow-c">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <filter id="glow-r">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-
-        {/* Orbit rings */}
-        {layers.map((l, i) => (
-          <circle key={i} cx="140" cy="140" r={l.r} fill="none" stroke={l.color} strokeWidth="0.5" strokeDasharray="4 6" opacity="0.25" />
-        ))}
-
-        {/* Rotating elements */}
-        <g transform={`rotate(${angle} 140 140)`}>
-          {layers.map((layer, li) =>
-            layer.labels.map((label, i) => {
-              const a = (360 / layer.count) * i * (Math.PI / 180);
-              const x = 140 + layer.r * Math.cos(a);
-              const y = 140 + layer.r * Math.sin(a);
-              return (
-                <g key={`${li}-${i}`} transform={`rotate(${-angle} ${x} ${y})`}>
-                  <circle cx={x} cy={y} r={4} fill={layer.color} opacity={0.8} filter="url(#glow-c)" />
-                  <text
-                    x={x} y={y - 8}
-                    textAnchor="middle"
-                    fill={layer.color}
-                    fontSize="6"
-                    fontFamily="'Share Tech Mono', monospace"
-                    letterSpacing="0.5"
-                    opacity="0.6"
-                  >
-                    {label}
-                  </text>
-                </g>
-              );
-            })
-          )}
-        </g>
-
-        {/* Center core */}
-        <circle cx="140" cy="140" r="18" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth="1" filter="url(#glow-r)" />
-        <circle cx="140" cy="140" r="10" fill="rgba(239,68,68,0.25)" />
-        <circle cx="140" cy="140" r="4" fill="#ef4444" />
-
-        {/* Connecting spokes */}
-        {layers[0].labels.map((_, i) => {
-          const a = (360 / layers[0].count) * i * (Math.PI / 180) + (angle * Math.PI / 180);
-          return (
-            <line
-              key={i}
-              x1="140" y1="140"
-              x2={140 + 110 * Math.cos(a)}
-              y2={140 + 110 * Math.sin(a)}
-              stroke="#22d3ee"
-              strokeWidth="0.4"
-              opacity="0.1"
+            <Icon
+              strokeWidth={1.5}
+              style={{ color: c }}
+              size={isHero ? 22 : 18}
             />
-          );
-        })}
-      </svg>
+          </motion.div>
 
-      {/* Center label */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 0,
-        }}
-      >
+          {/* Top-right: ID + optional stat */}
+          <div className="flex flex-col items-end gap-2">
+            <span
+              className="font-['JetBrains_Mono'] font-semibold px-2 py-[3px] border"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.18em",
+                color: c,
+                borderColor: `${c}28`,
+                background: `${c}0c`,
+              }}
+            >
+              {feat.id}
+            </span>
+            {feat.stat && (
+              <div className="text-right">
+                <div
+                  className="font-['Space_Grotesk'] font-bold leading-none"
+                  style={{ fontSize: isHero ? 28 : 20, color: c, letterSpacing: "-0.04em" }}
+                >
+                  {feat.stat.v}
+                </div>
+                <div className="font-['JetBrains_Mono'] text-[7px] tracking-[0.16em] text-white/25 uppercase mt-0.5">
+                  {feat.stat.l}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Tagline */}
         <div
+          className="font-['JetBrains_Mono'] mb-3"
           style={{
-            fontFamily: "'Share Tech Mono', monospace",
-            fontSize: 8,
-            letterSpacing: "0.3em",
-            color: "rgba(239,68,68,0.7)",
+            fontSize: 9,
+            letterSpacing: "0.2em",
+            color: `${c}70`,
             textTransform: "uppercase",
           }}
         >
-          CORE
+          {feat.tagline}
         </div>
-      </div>
-    </div>
-  );
-}
 
-// ── Comparison Row ────────────────────────────
-const COMPARISONS = [
-  { label: "Server-side session trust", us: true, them: false },
-  { label: "One-way escalation guarantee", us: true, them: false },
-  { label: "Risk scorer ≠ routing authority", us: true, them: false },
-  { label: "Full decoy DB isolation", us: true, them: false },
-  { label: "100% decoy interaction logging", us: true, them: false },
-  { label: "Canary trap intelligence", us: true, them: false },
-  { label: "Frontend deception transparency", us: true, them: false },
-  { label: "Attack simulation included", us: true, them: false },
-];
-
-function ComparisonTable({ inView }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 100px 100px",
-          borderBottom: "1px solid rgba(34,211,238,0.12)",
-          paddingBottom: 8,
-          marginBottom: 4,
-        }}
-      >
-        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, letterSpacing: "0.2em", color: "rgba(100,116,139,0.8)", textTransform: "uppercase" }}>Capability</span>
-        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, letterSpacing: "0.2em", color: "#22d3ee", textTransform: "uppercase", textAlign: "center" }}>PhantomShield</span>
-        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, letterSpacing: "0.2em", color: "rgba(100,116,139,0.5)", textTransform: "uppercase", textAlign: "center" }}>Typical SIEM</span>
-      </div>
-
-      {COMPARISONS.map((row, i) => (
-        <div
-          key={i}
+        {/* Title */}
+        <h3
+          className="font-['Space_Grotesk'] font-bold tracking-tight leading-[1.1] mb-3"
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 100px 100px",
-            padding: "10px 0",
-            borderBottom: "1px solid rgba(255,255,255,0.03)",
-            opacity: inView ? 1 : 0,
-            transform: inView ? "none" : "translateX(-12px)",
-            transition: `all 0.4s ease ${i * 80}ms`,
+            fontSize: isHero ? "clamp(1.4rem, 2vw, 1.9rem)" : "clamp(1rem, 1.5vw, 1.3rem)",
+            color: hov ? "#ffffff" : "#dde4ee",
+            transition: "color 0.25s ease",
           }}
         >
-          <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "0.85rem", fontWeight: 400, color: "rgba(148,163,184,0.7)", letterSpacing: "0.02em" }}>
-            {row.label}
-          </span>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="6" fill="rgba(34,211,238,0.12)" stroke="#22d3ee" strokeWidth="0.8" />
-              <path d="M4 7l2 2 4-4" stroke="#22d3ee" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="6" fill="rgba(100,116,139,0.05)" stroke="rgba(100,116,139,0.2)" strokeWidth="0.8" />
-              <path d="M5 5l4 4M9 5l-4 4" stroke="rgba(100,116,139,0.4)" strokeWidth="1.2" strokeLinecap="round" />
-            </svg>
-          </div>
+          {feat.title}
+        </h3>
+
+        {/* Body */}
+        <p
+          className="font-['Space_Grotesk'] font-normal leading-[1.72] text-white/38 tracking-[-0.005em] flex-1"
+          style={{ fontSize: isHero ? "14px" : "13px" }}
+        >
+          {feat.body}
+        </p>
+
+        {/* System specs — JetBrains Mono metadata */}
+        <div
+          className="mt-5 pt-4 flex flex-wrap gap-x-4 gap-y-1.5"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          {feat.specs.map((s, i) => (
+            <span
+              key={i}
+              className="font-['JetBrains_Mono'] uppercase"
+              style={{
+                fontSize: 8,
+                letterSpacing: "0.15em",
+                color: i === 0 ? `${c}70` : "rgba(255,255,255,0.22)",
+                lineHeight: 1.6,
+              }}
+            >
+              {s}
+            </span>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+    </motion.div>
   );
 }
 
-// ── Main Export ───────────────────────────────
+/* ─── MAIN EXPORT ─────────────────────────────────────────── */
 export default function WhyChooseUs() {
-  const [heroRef, heroInView] = useInView(0.1);
-  const [wheelRef, wheelInView] = useInView(0.2);
-  const [cmpRef, cmpInView] = useInView(0.1);
+  const hRef = useRef(null);
+  const gRef = useRef(null);
+  const hV   = useInView(hRef, { once: true, margin: "-60px" });
+  const gV   = useInView(gRef, { once: true, margin: "-80px" });
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 
-        @keyframes scanDiag {
-          0% { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
-          30% { opacity: 1; }
-          100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
-        }
-        @keyframes floatHex {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-12px) rotate(6deg); }
-        }
         @keyframes breathe {
-          0%, 100% { opacity: 0.06; transform: scale(1); }
-          50% { opacity: 0.12; transform: scale(1.03); }
+          0%,100%{ opacity:.048; transform:scale(1);    }
+          50%    { opacity:.09;  transform:scale(1.04); }
         }
-        @keyframes marqueeTape {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        @keyframes liveRipple {
+          0%  { transform:scale(1);   opacity:.4; }
+          100%{ transform:scale(3.2); opacity:0; }
+        }
+        @keyframes ticker {
+          0%  { transform:translateX(0); }
+          100%{ transform:translateX(-50%); }
         }
       `}</style>
 
       <section
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          background: "linear-gradient(180deg, #04080e 0%, #020508 60%, #040a0f 100%)",
-        }}
+        className="relative overflow-hidden"
+        style={{ background: "linear-gradient(180deg,#030a10 0%,#020810 100%)" }}
       >
-        {/* ── BG grid ── */}
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: `linear-gradient(rgba(34,211,238,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.022) 1px, transparent 1px)`,
-          backgroundSize: "40px 40px", pointerEvents: "none",
-        }} />
+        {/* 40px grid */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(34,211,238,0.02) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(34,211,238,0.02) 1px, transparent 1px)`,
+            backgroundSize: "40px 40px",
+          }}
+        />
 
-        {/* ── Floating hex BG shapes ── */}
-        {[
-          { size: 320, top: "8%",  left: "-6%",  dur: 9,  col: "#22d3ee" },
-          { size: 200, top: "55%", right: "-4%", dur: 12, col: "#ef4444" },
-          { size: 150, top: "30%", left: "45%",  dur: 7,  col: "#f59e0b" },
-        ].map((h, i) => (
+        {/* Grain */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{ backgroundImage: GRAIN, backgroundSize: "220px", mixBlendMode: "overlay" }}
+        />
+
+        {/* Glow pools */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{
+            width: 900, height: 600,
+            background: "radial-gradient(ellipse,rgba(34,211,238,0.048) 0%,transparent 65%)",
+            animation: "breathe 11s ease-in-out infinite",
+          }}
+        />
+        <div className="absolute bottom-1/4 right-0 pointer-events-none"
+          style={{
+            width: 500, height: 500,
+            background: "radial-gradient(ellipse,rgba(167,139,250,0.035) 0%,transparent 65%)",
+            animation: "breathe 15s ease-in-out infinite 5s",
+          }}
+        />
+
+        {/* ── HEADER ── */}
+        <div ref={hRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pt-28 pb-16">
+          {/* Overline */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={hV ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.55 }}
+            className="flex items-center gap-3 mb-12"
+          >
+            <div className="relative w-2 h-2 flex-shrink-0">
+              <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-30"
+                style={{ animation: "liveRipple 2.2s ease-out infinite" }}
+              />
+              <span className="absolute inset-[2px] rounded-full bg-cyan-400" />
+            </div>
+            <span className="font-['JetBrains_Mono'] text-[9px] tracking-[0.26em] text-cyan-400/55 uppercase">
+              PhantomShield · Feature Matrix · 12 Capabilities
+            </span>
+            <div className="flex-1 h-px"
+              style={{ background: "linear-gradient(90deg,rgba(34,211,238,0.15),transparent)" }}
+            />
+          </motion.div>
+
+          {/* Headline */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={hV ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.85, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="font-['JetBrains_Mono'] text-[10px] tracking-[0.1em] text-cyan-400/28 mb-4">
+              // Twelve architectural capabilities. Each one non-negotiable.
+            </div>
+            <h2
+              className="font-['Space_Grotesk'] font-bold uppercase tracking-tighter leading-[0.9]"
+              style={{ fontSize: "clamp(3rem,7.5vw,7.5rem)", color: "#f1f5f9" }}
+            >
+              BUILT AT
+              <span style={{
+                WebkitTextStroke: "1.5px rgba(34,211,238,0.65)",
+                WebkitTextFillColor: "transparent",
+                marginLeft: "0.18em",
+              }}>
+                THE LIMIT.
+              </span>
+            </h2>
+          </motion.div>
+
+          {/* Sub row */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={hV ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, delay: 0.28 }}
+            className="mt-10 flex flex-wrap items-end justify-between gap-8 border-t pt-7"
+            style={{ borderColor: "rgba(34,211,238,0.07)" }}
+          >
+            <p className="font-['Space_Grotesk'] text-[15px] leading-[1.75] text-white/38
+              max-w-[520px] tracking-[-0.005em]">
+              Twelve capabilities engineered to a single standard: undetectable deception
+              sustained by architecture that{" "}
+              <span className="text-white/62 font-medium">cannot be misconfigured into failure.</span>
+            </p>
+            <div className="flex gap-10 flex-shrink-0">
+              {[["12","Capabilities"],["0","Config Failures"],["∞","Deception TTL"]].map(([v,l]) => (
+                <div key={l} className="text-right">
+                  <div className="font-['Space_Grotesk'] font-bold text-cyan-400 leading-none"
+                    style={{ fontSize: "2.4rem", letterSpacing: "-0.04em" }}>
+                    {v}
+                  </div>
+                  <div className="font-['JetBrains_Mono'] text-[7.5px] tracking-[0.15em] text-white/24 uppercase mt-1.5">
+                    {l}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ── BENTO GRID ── */}
+        <div ref={gRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-32">
           <div
-            key={i}
+            className="grid gap-[10px]"
             style={{
-              position: "absolute",
-              top: h.top, left: h.left, right: h.right,
-              animation: `floatHex ${h.dur}s ease-in-out infinite`,
-              animationDelay: `${i * 2}s`,
-              pointerEvents: "none",
-              opacity: 0.07,
+              gridTemplateColumns: "repeat(12, 1fr)",
+              gridAutoRows: "minmax(0, 1fr)",
             }}
           >
-            <Hex size={h.size} stroke={h.col} fill={`${h.col}08`} />
-          </div>
-        ))}
-
-        {/* ── Heat blob glows ── */}
-        <div style={{
-          position: "absolute", top: "20%", left: "25%",
-          width: 600, height: 500,
-          background: "radial-gradient(ellipse, rgba(6,182,212,0.05) 0%, transparent 65%)",
-          animation: "breathe 8s ease-in-out infinite", pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", bottom: "5%", right: "10%",
-          width: 400, height: 400,
-          background: "radial-gradient(ellipse, rgba(239,68,68,0.04) 0%, transparent 65%)",
-          animation: "breathe 11s ease-in-out infinite 3s", pointerEvents: "none",
-        }} />
-
-        {/* ══════════════════════════════════════
-            SECTION 1: EDITORIAL HEADER BLOCK
-        ══════════════════════════════════════ */}
-        <div
-          ref={heroRef}
-          style={{ maxWidth: "90rem", margin: "0 auto", padding: "80px 2rem 60px" }}
-        >
-          {/* Overline row */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 16, marginBottom: 32,
-            opacity: heroInView ? 1 : 0, transform: heroInView ? "none" : "translateY(12px)",
-            transition: "all 0.6s ease",
-          }}>
-            <div style={{ display: "flex", gap: 3 }}>
-              {[1,1,1,1,0.3,0.15].map((op, i) => (
-                <div key={i} style={{ width: 24, height: 2, background: `rgba(34,211,238,${op})`, borderRadius: 1 }} />
-              ))}
+            {/* Row 1 */}
+            {/* F-01 HERO 2×2 */}
+            <div style={{ gridColumn: "span 5", gridRow: "span 2" }}>
+              <FeatureCard feat={FEATURES[0]} delay={0}    inView={gV} />
             </div>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, letterSpacing: "0.3em", color: "#22d3ee", textTransform: "uppercase" }}>
-              WHY PHANTOMSHIELD
-            </span>
-            <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, rgba(34,211,238,0.15), transparent)" }} />
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, letterSpacing: "0.2em", color: "rgba(100,116,139,0.6)" }}>
-              THREAT SUPERIORITY BRIEF
-            </span>
-          </div>
+            {/* F-02 TALL 1×2 */}
+            <div style={{ gridColumn: "span 3", gridRow: "span 2" }}>
+              <FeatureCard feat={FEATURES[1]} delay={0.06} inView={gV} />
+            </div>
+            {/* F-04 STANDARD */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[3]} delay={0.1}  inView={gV} />
+            </div>
+            {/* F-05 STANDARD */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[4]} delay={0.15} inView={gV} />
+            </div>
 
-          {/* MASSIVE headline — editorial split */}
-          <div style={{
-            opacity: heroInView ? 1 : 0, transform: heroInView ? "none" : "translateY(24px)",
-            transition: "all 0.8s ease 0.1s",
-          }}>
-            <div style={{
-              fontFamily: "'Rajdhani', sans-serif", fontWeight: 900,
-              fontSize: "clamp(3.5rem, 9vw, 9rem)",
-              lineHeight: 0.9, letterSpacing: "-0.02em",
-              textTransform: "uppercase", display: "flex", flexWrap: "wrap",
-              alignItems: "baseline", gap: "0.2em",
-            }}>
-              <span style={{ color: "#f1f5f9" }}>THE ONLY</span>
-              <span style={{ WebkitTextStroke: "1.5px #22d3ee", WebkitTextFillColor: "transparent" }}>
-                SYSTEM
-              </span>
+            {/* Row 3 */}
+            {/* F-03 WIDE */}
+            <div style={{ gridColumn: "span 8", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[2]} delay={0.18} inView={gV} />
             </div>
-            <div style={{
-              fontFamily: "'Rajdhani', sans-serif", fontWeight: 900,
-              fontSize: "clamp(3.5rem, 9vw, 9rem)",
-              lineHeight: 0.7, letterSpacing: "-0.02em",
-              textTransform: "uppercase", display: "flex", flexWrap: "wrap",
-              alignItems: "baseline", gap: "0.2em",
-            }}>
-              <span style={{ color: "#f1f5f9" }}>WHERE</span>
-              <span style={{ background: "linear-gradient(90deg, #22d3ee, #06b6d4 40%, #0e7490)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                ATTACKERS
-              </span>
-              <span style={{ color: "#f1f5f9" }}>DO YOUR</span>
+            {/* F-07 STANDARD */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[6]} delay={0.22} inView={gV} />
             </div>
-            <div style={{
-              fontFamily: "'Rajdhani', sans-serif", fontWeight: 900,
-              fontSize: "clamp(3.5rem, 9vw, 9rem)",
-              lineHeight: 0.9, letterSpacing: "-0.02em",
-              color: "#ef4444",
-              textTransform: "uppercase",
-              textShadow: "0 0 60px rgba(239,68,68,0.3)",
-            }}>
-              INTELLIGENCE WORK.
-            </div>
-          </div>
 
-          {/* Sub + stats row */}
-          <div style={{
-            marginTop: 40, display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 40, alignItems: "end",
-            opacity: heroInView ? 1 : 0, transform: heroInView ? "none" : "translateY(12px)",
-            transition: "all 0.7s ease 0.3s",
-            borderTop: "1px solid rgba(34,211,238,0.07)", paddingTop: 28,
-            flexWrap: "wrap",
-          }}>
-            <p style={{
-              fontFamily: "'Rajdhani', sans-serif", fontSize: "1.1rem",
-              fontWeight: 300, color: "rgba(148,163,184,0.65)",
-              lineHeight: 1.7, maxWidth: 560, letterSpacing: "0.01em",
-            }}>
-              PhantomShield doesn't detect attackers and alert your team.
-              It traps them in a cryptographically isolated reality and lets
-              them <span style={{ color: "#22d3ee", fontWeight: 500 }}>exhaust themselves against phantom infrastructure</span>{" "}
-              while you collect everything.
-            </p>
-            <div style={{ display: "flex", gap: 32, flexShrink: 0 }}>
-              {[
-                { n: 7, suffix: "", label: "System Layers" },
-                { n: 0, suffix: "ms", label: "Routing Overhead" },
-                { n: 100, suffix: "%", label: "Log Coverage" },
-              ].map((s, i) => (
-                <div key={i} style={{ textAlign: "right" }}>
-                  <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "2.5rem", fontWeight: 800, color: "#22d3ee", lineHeight: 1 }}>
-                    {s.n}{s.suffix}
-                  </div>
-                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, color: "rgba(100,116,139,1)", letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 2 }}>
-                    {s.label}
-                  </div>
-                </div>
-              ))}
+            {/* Row 4 */}
+            {/* F-06 ACCENT 2×2 */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 2" }}>
+              <FeatureCard feat={FEATURES[5]} delay={0.24} inView={gV} />
+            </div>
+            {/* F-10 STANDARD */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[9]}  delay={0.27} inView={gV} />
+            </div>
+            {/* F-11 STANDARD */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[10]} delay={0.3}  inView={gV} />
+            </div>
+            {/* F-08 STANDARD */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[7]} delay={0.33} inView={gV} />
+            </div>
+            {/* F-12 STANDARD */}
+            <div style={{ gridColumn: "span 4", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[11]} delay={0.36} inView={gV} />
+            </div>
+
+            {/* Row 5 — full width wide */}
+            <div style={{ gridColumn: "span 12", gridRow: "span 1" }}>
+              <FeatureCard feat={FEATURES[8]} delay={0.4} inView={gV} />
             </div>
           </div>
         </div>
 
-        {/* ══════════════════════════════════════
-            SECTION 2: WEAPON CARDS GRID
-        ══════════════════════════════════════ */}
-        <div style={{ maxWidth: "90rem", margin: "0 auto", padding: "0 2rem 80px" }}>
-          {/* Section label */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, letterSpacing: "0.28em", color: "rgba(100,116,139,0.7)", textTransform: "uppercase" }}>
-              04 DECISIVE ADVANTAGES
-            </span>
-            <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, rgba(34,211,238,0.15), transparent)" }} />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 1, background: "rgba(34,211,238,0.04)", border: "1px solid rgba(34,211,238,0.08)" }}>
-            {WEAPONS.map((w, i) => (
-              <WeaponCard key={w.id} w={w} index={i} />
-            ))}
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════
-            SECTION 3: THREAT WHEEL + COMPARISON
-        ══════════════════════════════════════ */}
+        {/* ── SPECS TICKER ── */}
         <div
-          ref={wheelRef}
+          className="border-t border-b overflow-hidden"
           style={{
-            maxWidth: "90rem", margin: "0 auto", padding: "0 2rem 100px",
-            display: "grid", gridTemplateColumns: "1fr 1px 1.4fr",
-            gap: 0, alignItems: "center",
+            borderColor: "rgba(34,211,238,0.07)",
+            background: "rgba(34,211,238,0.018)",
           }}
         >
-          {/* LEFT — Threat Wheel */}
-          <div style={{ padding: "0 60px 0 0", textAlign: "center" }}>
-            <div style={{
-              fontFamily: "'Share Tech Mono', monospace", fontSize: 9,
-              letterSpacing: "0.28em", color: "rgba(100,116,139,0.7)",
-              textTransform: "uppercase", marginBottom: 16,
-            }}>
-              SYSTEM ORBIT MAP
-            </div>
-            <ThreatWheel inView={wheelInView} />
-            <div style={{
-              marginTop: 20, display: "flex", justifyContent: "center", gap: 20,
-            }}>
-              {[{ c: "#22d3ee", l: "Auth/Session" }, { c: "#f59e0b", l: "Risk/Policy" }, { c: "#ef4444", l: "Decoy/Intel" }].map(({ c, l }) => (
-                <div key={l} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: c }} />
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, color: "rgba(100,116,139,0.8)", letterSpacing: "0.1em" }}>{l}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Pull quote */}
-            <div style={{
-              marginTop: 32,
-              border: "1px solid rgba(239,68,68,0.2)",
-              padding: "18px 20px",
-              background: "rgba(239,68,68,0.03)",
-              textAlign: "left",
-            }}>
-              <div style={{
-                fontFamily: "'Rajdhani', sans-serif", fontSize: "1.15rem",
-                fontWeight: 600, color: "#e2e8f0", lineHeight: 1.45,
-                marginBottom: 10,
-              }}>
-                "The attacker believes they penetrated the system. They have. It just isn't the real one."
-              </div>
-              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, color: "#ef4444", letterSpacing: "0.2em" }}>
-                — PHANTOMSHIELD CORE DOCTRINE
-              </div>
-            </div>
-          </div>
-
-          {/* SPINE */}
-          <div style={{
-            alignSelf: "stretch",
-            background: "linear-gradient(to bottom, transparent, rgba(34,211,238,0.2) 30%, rgba(34,211,238,0.2) 70%, transparent)",
-            width: 1,
-          }} />
-
-          {/* RIGHT — Comparison table */}
-          <div ref={cmpRef} style={{ padding: "0 0 0 60px" }}>
-            <div style={{
-              fontFamily: "'Share Tech Mono', monospace", fontSize: 9,
-              letterSpacing: "0.28em", color: "rgba(100,116,139,0.7)",
-              textTransform: "uppercase", marginBottom: 24,
-            }}>
-              COMPETITIVE ANALYSIS
-            </div>
-            <h3 style={{
-              fontFamily: "'Rajdhani', sans-serif", fontSize: "2rem",
-              fontWeight: 700, color: "#e2e8f0", letterSpacing: "0.01em",
-              lineHeight: 1.1, marginBottom: 28,
-            }}>
-              Everything typical security tools<br />
-              <span style={{ color: "#ef4444" }}>can't do.</span>
-            </h3>
-            <ComparisonTable inView={cmpInView} />
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════
-            SECTION 4: FINAL CTA BAR
-        ══════════════════════════════════════ */}
-        <div style={{
-          borderTop: "1px solid rgba(34,211,238,0.08)",
-          borderBottom: "1px solid rgba(34,211,238,0.08)",
-          background: "rgba(34,211,238,0.02)",
-          overflow: "hidden", padding: "6px 0",
-        }}>
-          <div style={{
-            display: "flex", whiteSpace: "nowrap",
-            animation: "marqueeTape 22s linear infinite",
-            fontFamily: "'Share Tech Mono', monospace",
-            fontSize: 9, letterSpacing: "0.25em",
-            color: "rgba(34,211,238,0.3)", gap: "4rem",
-          }}>
-            {Array(6).fill("DECEPTION IS NOT A FEATURE — IT IS THE ENTIRE ARCHITECTURE · REAL SYSTEM UNTOUCHED · ATTACKERS FULLY INSTRUMENTED · NO ALERTS. NO NOISE. JUST INTELLIGENCE · ").map((t, i) => (
-              <span key={i}>{t}</span>
+          <div
+            className="flex whitespace-nowrap py-2"
+            style={{ animation: "ticker 28s linear infinite" }}
+          >
+            {Array(5).fill(
+              "AUTH ≠ TRUST · SESSION · REDIS · RISK SCORER · ADVISORY ONLY · POLICY ENGINE · SOLE AUTHORITY · DECOY DB · MONGODB · REAL DB · POSTGRESQL · ESCALATION · ONE-WAY · FORENSICS · 100% · CANARY TRAPS · 38+ ENDPOINTS · "
+            ).map((t, i) => (
+              <span key={i}
+                className="font-['JetBrains_Mono'] mr-16"
+                style={{ fontSize: 8, letterSpacing: "0.22em", color: "rgba(34,211,238,0.24)" }}>
+                {t}
+              </span>
             ))}
           </div>
         </div>
 
-        <div style={{ maxWidth: "90rem", margin: "0 auto", padding: "60px 2rem 80px" }}>
-          <div style={{
-            display: "grid", gridTemplateColumns: "1fr auto",
-            gap: 32, alignItems: "center",
-            border: "1px solid rgba(34,211,238,0.12)",
-            background: "linear-gradient(135deg, rgba(6,182,212,0.04) 0%, rgba(0,0,0,0) 60%)",
-            padding: "40px 48px",
-          }}>
-            <div>
-              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, letterSpacing: "0.28em", color: "#22d3ee", textTransform: "uppercase", marginBottom: 12 }}>
-                READY TO DEPLOY
-              </div>
-              <h3 style={{
-                fontFamily: "'Rajdhani', sans-serif", fontSize: "2.2rem",
-                fontWeight: 700, color: "#f1f5f9", lineHeight: 1.1, letterSpacing: "0.01em",
-              }}>
-                Stop alerting on attacks.<br />
-                <span style={{ color: "#22d3ee" }}>Start profiting from them.</span>
-              </h3>
-            </div>
-            <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
-              <button style={{
-                fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-                fontSize: "0.85rem", letterSpacing: "0.2em",
-                textTransform: "uppercase", padding: "14px 32px",
-                background: "linear-gradient(135deg, #06b6d4, #0891b2)",
-                color: "#020a10", border: "none", cursor: "pointer",
-                boxShadow: "0 0 24px rgba(6,182,212,0.3)",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={e => { e.target.style.boxShadow = "0 0 40px rgba(6,182,212,0.55)"; e.target.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { e.target.style.boxShadow = "0 0 24px rgba(6,182,212,0.3)"; e.target.style.transform = "none"; }}
-              >
-                Deploy PhantomShield
-              </button>
-              <button style={{
-                fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
-                fontSize: "0.85rem", letterSpacing: "0.2em",
-                textTransform: "uppercase", padding: "14px 32px",
-                background: "transparent",
-                color: "rgba(148,163,184,0.7)",
-                border: "1px solid rgba(100,116,139,0.25)",
-                cursor: "pointer", transition: "all 0.2s ease",
-              }}
-              onMouseEnter={e => { e.target.style.borderColor = "rgba(34,211,238,0.4)"; e.target.style.color = "#22d3ee"; }}
-              onMouseLeave={e => { e.target.style.borderColor = "rgba(100,116,139,0.25)"; e.target.style.color = "rgba(148,163,184,0.7)"; }}
-              >
-                View Architecture
-              </button>
-            </div>
-          </div>
-        </div>
       </section>
     </>
   );

@@ -1,747 +1,525 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useAnimation, useInView, animate } from "framer-motion";
+import {
+  ShieldCheck, Activity, ArrowRight, FileText,
+  Zap, Lock, Eye, AlertTriangle, CheckCircle2,
+  Terminal, Wifi, Server, Globe, ChevronRight,
+} from "lucide-react";
 
-// ─── Glitch Text Component ──────────────────────────────────────────────────
-function GlitchText({ text, className = "" }) {
-  const [glitching, setGlitching] = useState(false);
 
+/* ─── THREAT LOG DATA ────────────────────────────────────── */
+const LOGS = [
+  { ts: "03:14:07.221", type: "INFO",  msg: "Session initialised — risk_score: 0.00",         color: "text-cyan-400" },
+  { ts: "03:14:09.440", type: "SCAN",  msg: "Telemetry collector attached to request pipeline", color: "text-cyan-400/70" },
+  { ts: "03:14:12.108", type: "WARN",  msg: "api_enumeration_depth anomaly detected: 7",       color: "text-amber-400" },
+  { ts: "03:14:12.213", type: "WARN",  msg: "navigation_velocity: HIGH — threshold exceeded",  color: "text-amber-400" },
+  { ts: "03:14:12.890", type: "RISK",  msg: "risk_scorer → 0.74  [12 signals processed]",      color: "text-orange-400" },
+  { ts: "03:14:13.001", type: "CRIT",  msg: "POLICY_ENGINE: ESCALATE REAL → DECOY",            color: "text-red-400" },
+  { ts: "03:14:13.002", type: "CRIT",  msg: "One-way escalation LOCKED — no reversal path",    color: "text-red-400" },
+  { ts: "03:14:13.100", type: "INFO",  msg: "Routing re-bound → app/api/decoy/routes.py",      color: "text-cyan-400/70" },
+  { ts: "03:14:13.220", type: "TRAP",  msg: "CANARY_TRAP armed — 12 bait endpoints active",    color: "text-violet-400" },
+  { ts: "03:14:14.780", type: "FORS",  msg: "Forensics logger active — 100% capture rate",     color: "text-violet-400" },
+  { ts: "03:14:17.992", type: "HIT",   msg: "CANARY_HIT /api/admin/export — intelligence++",   color: "text-red-300" },
+  { ts: "03:14:19.004", type: "INTEL", msg: "Timeline entry #14 reconstructed successfully",   color: "text-emerald-400" },
+  { ts: "03:14:21.330", type: "INFO",  msg: "Decoy response served — attacker unaware",        color: "text-cyan-400/70" },
+  { ts: "03:14:22.100", type: "FORS",  msg: "payload captured: POST /api/users/export",        color: "text-violet-400" },
+  { ts: "03:14:24.551", type: "INTEL", msg: "TTP fingerprint added to threat intelligence DB", color: "text-emerald-400" },
+  { ts: "03:14:26.003", type: "WARN",  msg: "sensitive_probe.py pattern identified",           color: "text-amber-400" },
+  { ts: "03:14:27.890", type: "RISK",  msg: "risk_scorer → 0.91  [compound signal]",           color: "text-orange-400" },
+  { ts: "03:14:28.000", type: "INFO",  msg: "Real PostgreSQL: untouched — zero crossover",     color: "text-emerald-400" },
+];
+
+const TYPE_COLORS = {
+  INFO:  "text-cyan-400/50 bg-cyan-400/8",
+  SCAN:  "text-cyan-300/50 bg-cyan-300/5",
+  WARN:  "text-amber-400/70 bg-amber-400/10",
+  RISK:  "text-orange-400/70 bg-orange-400/10",
+  CRIT:  "text-red-400 bg-red-400/12",
+  TRAP:  "text-violet-400/70 bg-violet-400/10",
+  FORS:  "text-violet-300/60 bg-violet-300/8",
+  HIT:   "text-red-300 bg-red-300/12",
+  INTEL: "text-emerald-400/70 bg-emerald-400/10",
+};
+
+/* ─── ANIMATED COUNTER ───────────────────────────────────── */
+function Counter({ to, suffix = "", duration = 2 }) {
+  const [val, setVal] = useState(0);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
   useEffect(() => {
-    const interval = setInterval(
-      () => {
-        setGlitching(true);
-        setTimeout(() => setGlitching(false), 180);
-      },
-      3800 + Math.random() * 2000,
-    );
-    return () => clearInterval(interval);
+    if (!inView) return;
+    const ctrl = animate(0, to, {
+      duration,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setVal(Math.round(v)),
+    });
+    return ctrl.stop;
+  }, [inView, to, duration]);
+  return <span ref={ref}>{val}{suffix}</span>;
+}
+
+/* ─── NAV ────────────────────────────────────────────────── */
+function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
   }, []);
 
   return (
-    <span className={`relative inline-block ${className}`}>
-      <span
-        className={`relative z-10 transition-all duration-75 ${
-          glitching ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        {text}
-      </span>
-      {glitching && (
-        <>
-          <span
-            className="absolute inset-0 z-20 text-cyan-400"
-            style={{
-              clipPath: "inset(20% 0 60% 0)",
-              transform: "translateX(-3px)",
-            }}
-          >
-            {text}
-          </span>
-          <span
-            className="absolute inset-0 z-20 text-red-500"
-            style={{
-              clipPath: "inset(60% 0 10% 0)",
-              transform: "translateX(3px)",
-            }}
-          >
-            {text}
-          </span>
-        </>
-      )}
-    </span>
-  );
-}
-
-// ─── Animated Terminal Line ──────────────────────────────────────────────────
-function TerminalLine({ text, delay = 0, color = "text-emerald-400" }) {
-  const [visible, setVisible] = useState(false);
-  const [chars, setChars] = useState("");
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setVisible(true);
-      let i = 0;
-      const iv = setInterval(() => {
-        setChars(text.slice(0, i + 1));
-        i++;
-        if (i >= text.length) clearInterval(iv);
-      }, 28);
-      return () => clearInterval(iv);
-    }, delay);
-    return () => clearTimeout(t);
-  }, [text, delay]);
-
-  if (!visible) return null;
-  return (
-    <div
-      className={`font-mono text-xs tracking-widest ${color} flex items-center gap-2`}
+    <motion.nav
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
+        scrolled
+          ? "backdrop-blur-xl bg-[#030a10]/80 border-b border-white/[0.06]"
+          : "bg-transparent"
+      }`}
     >
-      <span className="text-slate-600">▸</span>
-      <span>{chars}</span>
-      {chars.length < text.length && (
-        <span className="inline-block w-1.5 h-3 bg-emerald-400 animate-pulse" />
-      )}
-    </div>
+      <div className="max-w-[88rem] mx-auto px-10 h-[68px] flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className="relative w-8 h-9">
+            <svg viewBox="0 0 32 36" fill="none" className="w-full h-full">
+              <path d="M16 1L31 6.5V18C31 27 23 33.5 16 35C9 33.5 1 27 1 18V6.5L16 1z"
+                fill="rgba(34,211,238,0.1)" stroke="rgba(34,211,238,0.65)" strokeWidth="1"/>
+              <path d="M16 8L24 11.5V18C24 23 20 27 16 28C12 27 8 23 8 18V11.5L16 8z"
+                fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.3)" strokeWidth="0.8"/>
+              <circle cx="16" cy="18" r="3.5" fill="rgba(34,211,238,0.9)"/>
+            </svg>
+          </div>
+          <div className="flex flex-col leading-none gap-[6px]">
+            <span className="font-['JetBrains_Mono'] text-[10px] tracking-[0.2em] text-cyan-400">PHANTOM</span>
+            <span className="font-['JetBrains_Mono'] text-[10px] tracking-[0.2em] text-white/55 -mt-0.5">SHIELD</span>
+          </div>
+        </div>
+
+        {/* Links */}
+        <div className="hidden md:flex items-center gap-8">
+          {["Architecture", "How It Works", "Capabilities", "Docs"].map((item) => (
+            <a key={item} href="#"
+              className="font-['JetBrains_Mono'] text-[9px] tracking-[0.22em] text-white/35 hover:text-white/70 uppercase transition-colors duration-200">
+              {item}
+            </a>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-[7px] w-[7px]">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40"/>
+              <span className="relative inline-flex rounded-full h-[7px] w-[7px] bg-emerald-400"/>
+            </span>
+            <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.2em] text-emerald-400/70 uppercase hidden sm:block">
+              System Online
+            </span>
+          </div>
+          <button className="hidden sm:flex items-center gap-2 font-['Space_Grotesk'] font-semibold text-[11px] tracking-tight
+            px-4 py-2.5 bg-cyan-400 text-[#030a10] uppercase hover:shadow-[0_0_20px_rgba(34,211,238,0.35)]
+            hover:-translate-y-px transition-all duration-200 cursor-pointer">
+            Deploy
+          </button>
+        </div>
+      </div>
+    </motion.nav>
   );
 }
 
-// ─── Scan Line Overlay ───────────────────────────────────────────────────────
-function ScanLine() {
+/* ─── ANIMATED GRID BACKGROUND ──────────────────────────── */
+function GridBackground() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-none z-30">
-      <div
-        className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent"
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Base grid */}
+      <div className="absolute inset-0"
         style={{
-          animation: "scanline 6s linear infinite",
-          top: 0,
+          backgroundImage: `
+            linear-gradient(rgba(34,211,238,0.022) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34,211,238,0.022) 1px, transparent 1px)`,
+          backgroundSize: "40px 40px",
         }}
+      />
+
+      {/* Radial glow — centre */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+        w-[900px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.055) 0%, transparent 65%)" }}
+      />
+
+      {/* Corner glows */}
+      <div className="absolute -top-24 -left-24 w-[500px] h-[500px] rounded-full"
+        style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.035) 0%, transparent 60%)" }}
+      />
+      <div className="absolute -bottom-24 -right-24 w-[500px] h-[500px] rounded-full"
+        style={{ background: "radial-gradient(ellipse, rgba(167,139,250,0.03) 0%, transparent 60%)" }}
+      />
+
+      {/* Grain */}
+      <div className="absolute inset-0 opacity-[0.032]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: "200px",
+          mixBlendMode: "overlay",
+        }}
+      />
+
+      {/* Horizontal scan line */}
+      <motion.div
+        className="absolute left-0 right-0 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.25), transparent)" }}
+        animate={{ top: ["0%", "100%"] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
       />
     </div>
   );
 }
 
-// ─── Risk Pulse Node ────────────────────────────────────────────────────────
-function RiskNode({ label, value, color, delay = 0 }) {
-  const [animated, setAnimated] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setAnimated(true), delay);
-    return () => clearTimeout(t);
-  }, [delay]);
+/* ─── TERMINAL CARD ──────────────────────────────────────── */
+function TerminalCard() {
+  const logs = [...LOGS, ...LOGS]; // duplicate for seamless scroll
 
   return (
-    <div
-      className={`flex flex-col gap-1.5 transition-all duration-700 ${
-        animated ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      }`}
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.9, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="relative w-full max-w-[540px] mx-auto lg:mx-0"
     >
-      <div className="flex items-center gap-2">
-        <div
-          className={`w-2 h-2 rounded-full ${color} animate-pulse`}
-          style={{ boxShadow: `0 0 6px currentColor` }}
-        />
-        <span className="font-mono text-[10px] tracking-[0.2em] text-slate-500 uppercase">
-          {label}
-        </span>
+      {/* Outer glow */}
+      <div className="absolute -inset-px rounded-2xl opacity-60"
+        style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.25), transparent 50%, rgba(167,139,250,0.15))" }}
+      />
+
+      {/* Card shell */}
+      <div className="relative rounded-2xl overflow-hidden border border-white/[0.08]
+        backdrop-blur-xl bg-white/[0.03] shadow-[0_24px_60px_rgba(0,0,0,0.5)]">
+
+        {/* Terminal title bar */}
+        <div className="flex items-center justify-between px-5 py-3.5
+          border-b border-white/[0.07] bg-white/[0.02]">
+          <div className="flex items-center gap-3">
+            {/* Traffic lights */}
+            <div className="flex gap-1.5">
+              {["#ef4444","#f59e0b","#22d3ee"].map((c, i) => (
+                <div key={i} className="w-2.5 h-2.5 rounded-full"
+                  style={{ background: c, opacity: 0.75 }}/>
+              ))}
+            </div>
+            <Terminal size={12} className="text-cyan-400/50"/>
+            <span className="font-['JetBrains_Mono'] text-[9px] tracking-[0.15em] text-white/30 uppercase">
+              forensics@phantomshield:~
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-[6px] w-[6px]">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-50"/>
+              <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-red-400"/>
+            </span>
+            <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.18em] text-red-400/70 uppercase">
+              Capturing
+            </span>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 divide-x divide-white/[0.06] border-b border-white/[0.07]">
+          {[
+            { label: "Risk Score", value: "0.91", color: "text-red-400" },
+            { label: "Routing",    value: "DECOY", color: "text-red-400" },
+            { label: "Canaries",   value: "12 ARMED", color: "text-amber-400" },
+          ].map((s) => (
+            <div key={s.label} className="px-4 py-2.5">
+              <div className="font-['JetBrains_Mono'] text-[7px] tracking-[0.18em] text-white/25 uppercase mb-1">
+                {s.label}
+              </div>
+              <div className={`font-['Space_Grotesk'] font-bold text-[13px] tracking-tight ${s.color}`}>
+                {s.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Log window — scrolling */}
+        <div className="relative h-[340px] overflow-hidden">
+          {/* Top fade */}
+          <div className="absolute top-0 inset-x-0 h-10 z-10 pointer-events-none"
+            style={{ background: "linear-gradient(to bottom, rgba(3,10,16,0.95), transparent)" }}/>
+          {/* Bottom fade */}
+          <div className="absolute bottom-0 inset-x-0 h-16 z-10 pointer-events-none"
+            style={{ background: "linear-gradient(to top, rgba(3,10,16,0.98), transparent)" }}/>
+
+          {/* Scrolling log rows */}
+          <motion.div
+            className="absolute inset-x-0"
+            animate={{ y: [0, -(LOGS.length * 36)] }}
+            transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+          >
+            {logs.map((log, i) => (
+              <div key={i}
+                className="flex items-start gap-3 px-5 py-[9px] border-b border-white/[0.03] group
+                  hover:bg-white/[0.02] transition-colors duration-150"
+              >
+                {/* Type badge */}
+                <span className={`font-['JetBrains_Mono'] text-[7px] tracking-[0.15em] px-1.5 py-0.5
+                  rounded-[3px] uppercase flex-shrink-0 mt-0.5 ${TYPE_COLORS[log.type] || "text-white/30"}`}>
+                  {log.type}
+                </span>
+                {/* Timestamp */}
+                <span className="font-['JetBrains_Mono'] text-[8px] text-white/20 flex-shrink-0 mt-0.5 tabular-nums">
+                  {log.ts}
+                </span>
+                {/* Message */}
+                <span className={`font-['JetBrains_Mono'] text-[8.5px] leading-[1.55] tracking-[0.02em] ${log.color}`}>
+                  {log.msg}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Bottom input bar */}
+        <div className="flex items-center gap-3 px-5 py-3 border-t border-white/[0.07] bg-white/[0.015]">
+          <span className="font-['JetBrains_Mono'] text-[9px] text-cyan-400/50">$</span>
+          <span className="font-['JetBrains_Mono'] text-[9px] text-white/30 tracking-[0.04em]">
+            tail -f /var/log/phantomshield/forensics.log
+          </span>
+          <motion.span
+            className="inline-block w-[6px] h-[13px] bg-cyan-400/60 ml-1"
+            animate={{ opacity: [1, 0, 1] }}
+            transition={{ duration: 1, repeat: Infinity, ease: "steps(1)" }}
+          />
+        </div>
       </div>
-      <span className={`font-mono text-lg font-bold ${color} tracking-tight`}>
-        {value}
-      </span>
-    </div>
+
+      {/* Floating info chips */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 1.2, duration: 0.6 }}
+        className="absolute -right-4 top-20 flex flex-col gap-2"
+      >
+        {[
+          { icon: <Lock size={10}/>, label: "Real DB Isolated", color: "text-emerald-400", border: "border-emerald-400/20" },
+          { icon: <Eye size={10}/>,  label: "100% Logged",       color: "text-violet-400",  border: "border-violet-400/20" },
+          { icon: <Zap size={10}/>,  label: "<2ms Overhead",     color: "text-amber-400",   border: "border-amber-400/20" },
+        ].map((chip, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1.2 + i * 0.12 }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full
+              backdrop-blur-xl bg-white/[0.04] border ${chip.border}
+              shadow-[0_4px_16px_rgba(0,0,0,0.3)]`}
+          >
+            <span className={chip.color}>{chip.icon}</span>
+            <span className={`font-['JetBrains_Mono'] text-[8px] tracking-[0.12em] ${chip.color}`}>
+              {chip.label}
+            </span>
+          </motion.div>
+        ))}
+      </motion.div>
+    </motion.div>
   );
 }
 
-// ─── Particle Canvas ─────────────────────────────────────────────────────────
-function ParticleField() {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-
-    const particles = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      r: Math.random() * 1.2 + 0.3,
-      opacity: Math.random() * 0.4 + 0.1,
-    }));
-
-    let raf;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(34, 211, 238, ${p.opacity})`;
-        ctx.fill();
-      });
-
-      // Draw connections
-      particles.forEach((a, i) => {
-        particles.slice(i + 1).forEach((b) => {
-          const d = Math.hypot(a.x - b.x, a.y - b.y);
-          if (d < 90) {
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(34, 211, 238, ${0.07 * (1 - d / 90)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        });
-      });
-
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none"
-    />
-  );
-}
-
-// ─── Main Hero ───────────────────────────────────────────────────────────────
-export default function PhantomShieldHero() {
-  const [mounted, setMounted] = useState(false);
-  const [ctaHover, setCtaHover] = useState(false);
-  const [demoHover, setDemoHover] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 100);
-    return () => clearTimeout(t);
-  }, []);
-
+/* ─── HERO SECTION ───────────────────────────────────────── */
+export default function HeroSection() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap');
-
-        @keyframes scanline {
-          0% { top: -2px; }
-          100% { top: 100%; }
-        }
-        @keyframes flicker {
-          0%, 100% { opacity: 1; }
-          92% { opacity: 1; }
-          93% { opacity: 0.8; }
-          94% { opacity: 1; }
-          96% { opacity: 0.6; }
-          97% { opacity: 1; }
-        }
-        @keyframes borderPulse {
-          0%, 100% { border-color: rgba(34,211,238,0.25); }
-          50% { border-color: rgba(34,211,238,0.6); }
-        }
-        @keyframes gridMove {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(40px); }
-        }
-        .font-rajdhani { font-family: 'Rajdhani', sans-serif; }
-        .font-geist-mono { font-family: "Geist Mono", monospace; }
-        .font-mono-tech { font-family: 'Share Tech Mono', monospace; }
-        .flicker { animation: flicker 8s infinite; }
-        .border-pulse { animation: borderPulse 3s ease-in-out infinite; }
-        .cta-primary {
-          background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-          box-shadow: 0 0 20px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
-          transition: all 0.2s ease;
-        }
-        .cta-primary:hover {
-          box-shadow: 0 0 35px rgba(6,182,212,0.6), inset 0 1px 0 rgba(255,255,255,0.15);
-          transform: translateY(-1px);
-        }
-        .cta-secondary {
-          background: transparent;
-          border: 1px solid rgba(34,211,238,0.3);
-          transition: all 0.2s ease;
-        }
-        .cta-secondary:hover {
-          background: rgba(34,211,238,0.08);
-          border-color: rgba(34,211,238,0.7);
-          box-shadow: 0 0 18px rgba(34,211,238,0.15);
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
       `}</style>
 
-      <div
-        className="relative min-h-screen overflow-hidden font-rajdhani"
-        style={{
-          background:
-            "linear-gradient(160deg, #020508 0%, #050d12 40%, #030a10 100%)",
-        }}
-      >
-        {/* ── Grid Background ── */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px)
-            `,
-            backgroundSize: "40px 40px",
-            animation: "gridMove 20s linear infinite",
-          }}
-        />
+      <Navbar />
 
-        {/* ── Radial Glow ── */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: "15%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "700px",
-            height: "400px",
-            background:
-              "radial-gradient(ellipse, rgba(6,182,212,0.07) 0%, transparent 70%)",
-          }}
-        />
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            bottom: "10%",
-            right: "5%",
-            width: "300px",
-            height: "300px",
-            background:
-              "radial-gradient(ellipse, rgba(239,68,68,0.04) 0%, transparent 70%)",
-          }}
-        />
+      <section className="relative min-h-screen flex items-center overflow-hidden"
+        style={{ background: "linear-gradient(160deg, #030a10 0%, #020810 60%, #040c14 100%)" }}>
 
-        {/* ── Particles ── */}
-        <ParticleField />
-        <ScanLine />
+        <GridBackground />
 
-        {/* ── Navbar ── */}
-        <nav className="relative z-20 flex items-center justify-between px-8 py-5 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            {/* Shield SVG */}
-            <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
-              <path
-                d="M14 0L28 5.5V16C28 24 21 30.5 14 32C7 30.5 0 24 0 16V5.5L14 0Z"
-                fill="rgba(6,182,212,0.15)"
-                stroke="rgba(6,182,212,0.7)"
-                strokeWidth="1"
-              />
-              <path
-                d="M14 7L22 10.5V17C22 22 18 26 14 27C10 26 6 22 6 17V10.5L14 7Z"
-                fill="rgba(6,182,212,0.08)"
-                stroke="rgba(6,182,212,0.4)"
-                strokeWidth="0.8"
-              />
-              <circle cx="14" cy="17" r="3" fill="rgba(6,182,212,0.8)" />
-            </svg>
-            <div>
-              <span className="font-geist-mono text-sm text-cyan-400 tracking-[0.15em]">
-                PHANTOM
-              </span>
-              <span className="font-geist-mono text-sm text-slate-300 tracking-[0.15em]">
-                SHIELD
-              </span>
-            </div>
-          </div>
+        {/* ── MAIN CONTENT ── */}
+        <div className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 w-full pt-[68px]">
+          <div className="grid lg:grid-cols-[1fr_520px] xl:grid-cols-[1fr_560px] gap-16 xl:gap-24
+            items-center min-h-[calc(100vh-68px)] py-20">
 
-          <div className="hidden md:flex items-center gap-6">
-            {["Architecture", "Docs", "Simulation", "Intelligence"].map(
-              (item) => (
-                <button
-                  key={item}
-                  className="font-geist-mono text-xs tracking-widest text-slate-500 hover:text-cyan-400 transition-colors uppercase cursor-pointer"
-                >
-                  {item}
-                </button>
-              ),
-            )}
-          </div>
+            {/* ── LEFT — COPY ── */}
+            <div className="flex flex-col gap-0">
 
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-geist-mono text-xs text-slate-500 tracking-widest">
-              SYSTEM ONLINE
-            </span>
-          </div>
-        </nav>
-
-        {/* ── Main Content ── */}
-        <main className="relative z-20 max-w-7xl mx-auto px-8 pt-12 pb-20">
-          <div className="grid lg:grid-cols-[1fr_420px] gap-16 items-center min-h-[80vh]">
-            {/* LEFT — Primary Content */}
-            <div className="flex flex-col gap-8">
-              {/* ── Tier Badge (Anchor Tier — Utility) ── */}
-              <div
-                className={`inline-flex items-center gap-3 w-fit border border-pulse rounded-sm px-4 py-2 transition-all duration-700 ${
-                  mounted
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 -translate-y-3"
-                }`}
-                style={{ borderColor: "rgba(34,211,238,0.25)" }}
+              {/* System status badge */}
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="flex items-center gap-3 w-fit mb-8"
               >
-                <div className="flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-cyan-400 rounded-full"
-                      style={{
-                        height: `${8 + i * 4}px`,
-                        opacity: 0.4 + i * 0.3,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span className="font-rajdhani text-[10px] tracking-[0.25em] text-cyan-500 uppercase">
-                  ACTIVE DECEPTION FRAMEWORK · v1.0
-                </span>
-              </div>
-
-              {/* ── Headline (Anchor — Primary) ── */}
-              <div
-                className={`transition-all duration-700 delay-100 ${
-                  mounted
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
-              >
-                <h1
-                  className="flicker leading-none tracking-tight"
-                  style={{
-                    fontSize: "clamp(3rem, 6vw, 5.5rem)",
-                    fontWeight: 700,
-                  }}
-                >
-                  <span className="text-slate-100 block">
-                    <GlitchText text="Let Attackers" />
+                <div className="flex items-center gap-2.5 px-4 py-2 rounded-full
+                  backdrop-blur-xl bg-white/[0.04] border border-white/[0.08]">
+                  <span className="relative flex h-[7px] w-[7px]">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40"/>
+                    <span className="relative inline-flex rounded-full h-[7px] w-[7px] bg-emerald-400"/>
                   </span>
+                  <span className="font-['JetBrains_Mono'] text-[9px] tracking-[0.22em] text-emerald-400/80 uppercase">
+                    System Status: Active
+                  </span>
+                </div>
+                <div className="h-px w-16 bg-gradient-to-r from-cyan-400/30 to-transparent"/>
+                <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.2em] text-white/25 uppercase">
+                  v1.0 · Production
+                </span>
+              </motion.div>
+
+              {/* H1 */}
+              <div className="overflow-hidden mb-4">
+                <motion.h1
+                  initial={{ y: 80, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.85, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                  className="font-['Space_Grotesk'] font-bold leading-[0.88] tracking-tighter uppercase"
+                  style={{ fontSize: "clamp(3.4rem, 8vw, 7.5rem)" }}
+                >
+                  <span className="text-white block">Redefining</span>
+                  <span className="text-white block">Digital</span>
                   <span
                     className="block"
                     style={{
-                      background:
-                        "linear-gradient(90deg, #22d3ee 0%, #06b6d4 40%, #0e7490 100%)",
+                      background: "linear-gradient(90deg, #22d3ee 0%, #06b6d4 50%, #0891b2 100%)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                     }}
                   >
-                    Think They Won
+                    Fortification.
                   </span>
-                  <span
-                    className="text-slate-500 block"
-                    style={{ fontSize: "0.7em" }}
-                  >
-                     While You Watch.
-                  </span>
-                </h1>
+                </motion.h1>
               </div>
 
-              {/* ── Subheadline (Support — Secondary) ── */}
-              <div
-                className={`transition-all duration-700 delay-200 ${
-                  mounted
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
+              {/* Comment line */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.45 }}
+                className="font-['JetBrains_Mono'] text-[10px] tracking-[0.1em] text-cyan-400/30 mb-8"
               >
-                <p
-                  className="text-slate-400 leading-relaxed max-w-lg"
-                  style={{
-                    fontSize: "1.1rem",
-                    fontWeight: 300,
-                    letterSpacing: "0.01em",
-                  }}
+                // The attacker believes they're inside. They are. It's not the real system.
+              </motion.div>
+
+              {/* Description */}
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="font-['Space_Grotesk'] font-normal text-[1rem] leading-[1.78]
+                  tracking-[-0.005em] text-white/40 max-w-[480px] mb-10"
+              >
+                PhantomShield routes confirmed threats into a{" "}
+                <span className="text-white/70 font-medium">cryptographically isolated decoy system</span>
+                {" "}— capturing forensic intelligence while your real infrastructure remains entirely untouched.
+                Seven hermetically sealed layers. Zero configuration paths to failure.
+              </motion.p>
+
+              {/* CTA Row */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-wrap items-center gap-3 mb-14"
+              >
+                {/* Primary */}
+                <motion.button
+                  whileHover={{ y: -2, boxShadow: "0 0 32px rgba(34,211,238,0.4)" }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-2.5 font-['Space_Grotesk'] font-bold
+                    text-[13px] tracking-tight uppercase px-7 py-[14px]
+                    bg-cyan-400 text-[#030a10] transition-all duration-200 cursor-pointer"
                 >
-                  PhantomShield routes confirmed threats into a{" "}
-                  <span className="text-cyan-400 font-medium">
-                    cryptographically isolated decoy system
-                  </span>{" "}
-                  — capturing forensic intelligence while your real
-                  infrastructure remains untouched.
-                </p>
-              </div>
+                  Deploy PhantomShield
+                  <ArrowRight size={14} strokeWidth={2.5}/>
+                </motion.button>
 
-              {/* ── Terminal Block ── */}
-              <div
-                className={`transition-all duration-700 delay-300 ${
-                  mounted
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
-              >
-                <div
-                  className="rounded-sm border p-4 flex flex-col gap-2"
-                  style={{
-                    borderColor: "rgba(34,211,238,0.12)",
-                    background: "rgba(6,182,212,0.03)",
-                  }}
+                {/* Secondary ghost */}
+                <motion.button
+                  whileHover={{ borderColor: "rgba(34,211,238,0.45)", background: "rgba(34,211,238,0.06)" }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-2.5 font-['Space_Grotesk'] font-semibold
+                    text-[13px] tracking-tight uppercase px-7 py-[14px]
+                    backdrop-blur-xl bg-white/[0.03] border border-white/[0.12]
+                    text-white/55 transition-all duration-200 cursor-pointer"
                 >
-                  <TerminalLine
-                    text="SESSION_CREATED → risk_score: 0.0 → routing: REAL"
-                    delay={800}
-                  />
-                  <TerminalLine
-                    text="ANOMALY_DETECTED → api_enumeration: true → risk_score: 0.74"
-                    delay={1800}
-                    color="text-yellow-500"
-                  />
-                  <TerminalLine
-                    text="POLICY_ENGINE → ESCALATE: REAL → DECOY [ONE-WAY]"
-                    delay={2700}
-                    color="text-red-400"
-                  />
-                  <TerminalLine
-                    text="FORENSICS_LOGGER → session captured, canary_trap: ARMED"
-                    delay={3600}
-                  />
-                </div>
-              </div>
+                  <FileText size={13} strokeWidth={1.8}/>
+                  View Documentation
+                </motion.button>
+              </motion.div>
 
-              {/* ── CTAs ── */}
-              <div
-                className={`flex flex-wrap items-center gap-4 transition-all duration-700 delay-500 ${
-                  mounted
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
+              {/* Metrics strip */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="flex items-center gap-0 border-t border-white/[0.06] pt-8"
               >
-                <button
-                  className="cta-primary rounded-sm px-8 py-3.5 font-rajdhani font-semibold tracking-widest text-sm text-slate-900 uppercase cursor-pointer"
-                  //   onMouseEnter={() => setCtaHover(true)}
-                  //   onMouseLeave={() => setCtaHover(false)}
-                >
-                  <span className="flex items-center gap-2 cursor-pointer">
-                    "DEPLOY SYSTEM"
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path
-                        d="M1 7H13M13 7L8 2M13 7L8 12"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </span>
-                </button>
-
-                <button
-                  className="cta-secondary rounded-sm px-8 py-3.5 font-rajdhani font-semibold tracking-widest text-sm text-cyan-400 uppercase cursor-pointer"
-                  //   onMouseEnter={() => setDemoHover(true)}
-                  //   onMouseLeave={() => setDemoHover(false)}
-                >
-                  "RUN ATTACK Simulation"
-                </button>
-              </div>
-            </div>
-
-            {/* RIGHT — Status Panel (Utility — Tertiary) */}
-            <div
-              className={`flex flex-col gap-4 transition-all duration-1000 delay-400 ${
-                mounted
-                  ? "opacity-100 translate-x-0"
-                  : "opacity-100 translate-x-8"
-              }`}
-            >
-              {/* Session Monitor */}
-              <div
-                className="rounded-sm border p-5 flex flex-col gap-5"
-                style={{
-                  borderColor: "rgba(34,211,238,0.15)",
-                  background:
-                    "linear-gradient(135deg, rgba(6,182,212,0.04) 0%, rgba(0,0,0,0) 100%)",
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-geist-mono text-[10px] tracking-[0.2em] text-slate-600 uppercase">
-                    Session Monitor
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-geist-mono text-[9px] text-emerald-500 tracking-widest">
-                      LIVE
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-x-6 gap-y-5">
-                  <RiskNode
-                    label="Risk Score"
-                    value="0.74"
-                    color="text-yellow-400"
-                    delay={900}
-                  />
-                  <RiskNode
-                    label="Routing"
-                    value="DECOY"
-                    color="text-red-400"
-                    delay={1000}
-                  />
-                  <RiskNode
-                    label="Sessions"
-                    value="1,204"
-                    color="text-cyan-400"
-                    delay={1100}
-                  />
-                  <RiskNode
-                    label="Canaries Hit"
-                    value="38"
-                    color="text-orange-400"
-                    delay={1200}
-                  />
-                </div>
-
-                {/* Risk bar */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between">
-                    <span className="font-geist-mono text-[9px] text-slate-600 tracking-widest uppercase">
-                      Threat Level
-                    </span>
-                    <span className="font-geist-mono text-[9px] text-yellow-400">
-                      74%
-                    </span>
-                  </div>
-                  <div
-                    className="h-px w-full rounded-full overflow-hidden"
-                    style={{ background: "rgba(34,211,238,0.08)" }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-1000"
-                      style={{
-                        width: mounted ? "74%" : "0%",
-                        background:
-                          "linear-gradient(90deg, #22d3ee, #fbbf24, #ef4444)",
-                        transitionDelay: "1.2s",
-                        boxShadow: "0 0 8px rgba(251,191,36,0.5)",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Routing States */}
-              <div
-                className="rounded-sm border p-4 flex flex-col gap-3"
-                style={{ borderColor: "rgba(34,211,238,0.1)" }}
-              >
-                <span className="font-geist-mono text-[10px] tracking-[0.2em] text-slate-600 uppercase">
-                  Routing State Machine
-                </span>
-                <div className="flex items-center gap-2">
-                  {/* REAL node */}
-                  <div
-                    className="flex-1 rounded-sm border px-3 py-2 text-center"
-                    style={{
-                      borderColor: "rgba(34,211,238,0.3)",
-                      background: "rgba(34,211,238,0.05)",
-                    }}
-                  >
-                    <div className="font-geist-mono text-xs text-cyan-400 tracking-widest">
-                      REAL
+                {[
+                  { n: 7,   s: "",   label: "Isolation Layers",   color: "text-cyan-400" },
+                  { n: 100, s: "%",  label: "Forensic Coverage",  color: "text-cyan-400" },
+                  { n: 0,   s: "",   label: "DB Crossovers",      color: "text-red-400" },
+                  { n: 38,  s: "+",  label: "Canary Endpoints",   color: "text-amber-400" },
+                ].map((m, i) => (
+                  <div key={i} className={`pr-8 ${i > 0 ? "pl-8 border-l border-white/[0.06]" : ""}`}>
+                    <div className={`font-['Space_Grotesk'] font-bold leading-none tracking-tighter ${m.color}`}
+                      style={{ fontSize: "clamp(1.6rem, 2.8vw, 2.4rem)" }}>
+                      <Counter to={m.n} suffix={m.s} duration={1.8}/>
+                    </div>
+                    <div className="font-['JetBrains_Mono'] text-[7.5px] tracking-[0.16em]
+                      text-white/25 uppercase mt-1.5 leading-none">
+                      {m.label}
                     </div>
                   </div>
+                ))}
+              </motion.div>
+            </div>
 
-                  {/* Arrow — one-way */}
-                  <div className="flex flex-col items-center gap-0.5">
-                    <svg width="32" height="14" viewBox="0 0 32 14" fill="none">
-                      <path
-                        d="M0 7H28M28 7L22 2M28 7L22 12"
-                        stroke="rgba(239,68,68,0.6)"
-                        strokeWidth="1.2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className="font-geist-mono text-[8px] text-red-500/60 tracking-widest">
-                      ONE-WAY
-                    </span>
-                  </div>
-
-                  {/* DECOY node */}
-                  <div
-                    className="flex-1 rounded-sm border px-3 py-2 text-center"
-                    style={{
-                      borderColor: "rgba(239,68,68,0.3)",
-                      background: "rgba(239,68,68,0.05)",
-                    }}
-                  >
-                    <div className="font-geist-mono text-xs text-red-400 tracking-widest">
-                      DECOY
-                    </div>
-                  </div>
-                </div>
-                <p className="font-geist-mono text-[9px] text-slate-600 leading-relaxed">
-                  Escalation is irreversible. DECOY → REAL is architecturally
-                  forbidden.
-                </p>
-              </div>
-
-              {/* Canary indicator */}
-              <div
-                className="rounded-sm border p-4 flex items-center gap-4"
-                style={{
-                  borderColor: "rgba(251,191,36,0.15)",
-                  background: "rgba(251,191,36,0.03)",
-                }}
-              >
-                <div
-                  className="w-8 h-8 rounded-sm flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: "rgba(251,191,36,0.1)",
-                    border: "1px solid rgba(251,191,36,0.2)",
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path
-                      d="M8 1L10 6H15L11 9.5L12.5 15L8 11.5L3.5 15L5 9.5L1 6H6L8 1Z"
-                      fill="rgba(251,191,36,0.6)"
-                      stroke="rgba(251,191,36,0.8)"
-                      strokeWidth="0.5"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <div className="font-geist-mono text-xs text-yellow-400 tracking-widest mb-0.5">
-                    CANARY TRAPS ARMED
-                  </div>
-                  <div className="font-geist-mono text-[9px] text-slate-600">
-                    12 bait endpoints active · 0 false positives
-                  </div>
-                </div>
-              </div>
+            {/* ── RIGHT — TERMINAL CARD ── */}
+            <div className="flex items-center justify-center lg:justify-end">
+              <TerminalCard />
             </div>
           </div>
+        </div>
 
-          {/* ── Bottom Stats Strip ── */}
-          <div
-            className={`mt-4 border-t pt-6 grid grid-cols-2 md:grid-cols-4 gap-6 transition-all duration-700 delay-700 ${
-              mounted ? "opacity-100" : "opacity-0"
-            }`}
-            style={{ borderColor: "rgba(34,211,238,0.08)" }}
-          >
-            {[
-              {
-                label: "Architecture Rule",
-                value: "Auth ≠ Trust",
-                sub: "JWT is identity only",
-              },
-              {
-                label: "Policy Engine",
-                value: "Advisory",
-                sub: "Risk scores never route",
-              },
-              {
-                label: "DB Isolation",
-                value: "Postgres / Mongo",
-                sub: "Real / Decoy strict split",
-              },
-              {
-                label: "Forensic Log",
-                value: "100% Coverage",
-                sub: "Every decoy interaction",
-              },
-            ].map((item, i) => (
-              <div key={i} className="flex flex-col gap-1">
-                <span className="font-geist-mono text-[9px] tracking-widest text-slate-600 uppercase">
-                  {item.label}
-                </span>
-                <span className="font-rajdhani text-sm font-semibold text-slate-300 tracking-wide">
-                  {item.value}
-                </span>
-                <span className="font-geist-mono text-[9px] text-slate-600">
-                  {item.sub}
-                </span>
-              </div>
-            ))}
+        {/* ── BOTTOM ARCHITECTURE PILLS ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9, duration: 0.6 }}
+          className="absolute bottom-0 inset-x-0 border-t border-white/[0.05]
+            backdrop-blur-sm bg-white/[0.01] z-20"
+        >
+          <div className="max-w-[88rem] mx-auto px-10 h-12 flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              {[
+                { icon: <ShieldCheck size={9}/>, label: "Auth ≠ Trust",         color: "text-cyan-400/60" },
+                { icon: <Activity    size={9}/>, label: "Risk Advisory Only",    color: "text-amber-400/60" },
+                { icon: <Lock        size={9}/>, label: "One-Way Escalation",    color: "text-red-400/60" },
+                { icon: <Server      size={9}/>, label: "Zero DB Crossover",     color: "text-emerald-400/60" },
+              ].map((pill) => (
+                <div key={pill.label} className={`hidden sm:flex items-center gap-1.5 ${pill.color}`}>
+                  {pill.icon}
+                  <span className="font-['JetBrains_Mono'] text-[7.5px] tracking-[0.18em] uppercase">
+                    {pill.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe size={9} className="text-white/20"/>
+              <span className="font-['JetBrains_Mono'] text-[7.5px] tracking-[0.18em] text-white/20 uppercase">
+                REF: PS-v1 · PhantomShield
+              </span>
+            </div>
           </div>
-        </main>
-      </div>
+        </motion.div>
+
+      </section>
     </>
   );
 }

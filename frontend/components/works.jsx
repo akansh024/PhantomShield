@@ -1,886 +1,609 @@
-import { useState, useEffect, useRef } from "react";
+import { useRef, useState } from "react";
+import { motion, useInView, useScroll, useTransform, useSpring } from "framer-motion";
+import {
+  KeyRound, Database, Radar, Brain,
+  GitBranch, Ghost, Crosshair, ShieldAlert,
+  ChevronRight, ArrowDown,
+} from "lucide-react";
 
-/* ─────────────────────────────────────────────
-   PHANTOMSHIELD — HOW IT WORKS
-   Aesthetic: Classified SIGINT Dossier meets
-   Industrial Process Schematic. Each step is
-   a "OPERATION STAGE" card — sliced diagonally,
-   oversized ghost numbers bleeding out of frame,
-   redacted labels, animated data pipes, live
-   signal bars. Think NSA meets brutalist print.
-───────────────────────────────────────────── */
+const STEPS = [
+  {
+    id: "P-01",
+    icon: KeyRound,
+    title: "User Authenticates",
+    tagline: "Identity confirmed. Trust unassigned.",
+    body: "Credentials are verified and a JWT token is issued. Authentication proves identity — nothing more. Trust state is never derived from the token itself.",
+    tags: ["app/api/auth/", "core/security.py"],
+    color: "#22d3ee",
+    metric: { v: "RS256", l: "Algorithm" },
+    side: "right",
+  },
+  {
+    id: "P-02",
+    icon: Database,
+    title: "Session Initialised",
+    tagline: "Server-side. Redis. Score zero.",
+    body: "A server-side session is created in Redis with risk_score 0.0, routing_state REAL, and last_activity timestamp. This session — not the JWT — is the authoritative source of trust.",
+    tags: ["session/store.py", "session/models.py"],
+    color: "#22d3ee",
+    metric: { v: "0.00", l: "Initial Risk" },
+    side: "left",
+  },
+  {
+    id: "P-03",
+    icon: Radar,
+    title: "Behaviour Monitored",
+    tagline: "Passive. Silent. Sub-2ms.",
+    body: "Every request passes through the telemetry middleware. API enumeration depth, navigation velocity, endpoint access patterns, and payload shape anomalies are extracted without the user's knowledge.",
+    tags: ["middleware/telemetry.py", "behavior/features.py"],
+    color: "#f59e0b",
+    metric: { v: "12", l: "Signal Types" },
+    side: "right",
+  },
+  {
+    id: "P-04",
+    icon: Brain,
+    title: "Risk Scored",
+    tagline: "Advisory only. Never routes.",
+    body: "Behavioural signals are weighted and combined into a 0–1 risk score. The scorer is purely advisory — it calculates threat probability and nothing else. Temporal decay is applied between requests.",
+    tags: ["risk/scorer.py", "risk/thresholds.py"],
+    color: "#f59e0b",
+    metric: { v: "0.74", l: "Threshold Hit" },
+    side: "left",
+  },
+  {
+    id: "P-05",
+    icon: GitBranch,
+    title: "Policy Decides",
+    tagline: "Sole authority. One law.",
+    body: "The policy engine reads the risk score and applies escalation rules. It is the only component that can change routing_state. REAL → DECOY is a one-way, architecturally irreversible transition.",
+    tags: ["policy/engine.py", "policy/rules.py"],
+    color: "#ef4444",
+    metric: { v: "0.65", l: "Threshold" },
+    side: "right",
+  },
+  {
+    id: "P-06",
+    icon: Ghost,
+    title: "Attacker Isolated",
+    tagline: "Inside the phantom. Unaware.",
+    body: "Routing middleware silently re-binds all requests to the decoy system. Fake APIs return believable data from MongoDB. The attacker can probe for hours and never detect the fiction.",
+    tags: ["api/decoy/routes.py", "db/mongo/repo.py"],
+    color: "#ef4444",
+    metric: { v: "100%", l: "Fidelity" },
+    side: "left",
+  },
+  {
+    id: "P-07",
+    icon: Crosshair,
+    title: "Canaries Armed",
+    tagline: "Bait set. Intelligence primed.",
+    body: "38+ decoy endpoints are seeded throughout the phantom. A single access triggers deep forensic capture mode, spikes the risk score, and begins compound signal collection.",
+    tags: ["canary/definitions.py", "canary/detector.py"],
+    color: "#a78bfa",
+    metric: { v: "38+", l: "Bait Endpoints" },
+    side: "right",
+  },
+  {
+    id: "P-08",
+    icon: ShieldAlert,
+    title: "Intelligence Captured",
+    tagline: "Every move. Catalogued. Weaponised.",
+    body: "Every decoy interaction is logged with full fidelity — session ID, endpoint, payload, headers, timing, and canary status. The attacker's entire operation is reconstructed into a threat intelligence timeline.",
+    tags: ["forensics/logger.py", "forensics/timeline.py"],
+    color: "#10b981",
+    metric: { v: "100%", l: "Coverage" },
+    side: "left",
+  },
+];
 
-// ── Intersection observer hook ──────────────
-function useInView(threshold = 0.15) {
+/* ─── ANIMATED FILL LINE ─────────────────────────────────── */
+function FillLine({ inView, color, vertical = false }) {
+  return (
+    <div className={`relative ${vertical ? "w-px" : "h-px"} overflow-hidden`}
+      style={{ background: "rgba(255,255,255,0.07)" }}>
+      <motion.div
+        className={`absolute ${vertical ? "inset-x-0 top-0" : "inset-y-0 left-0"}`}
+        style={{
+          background: `linear-gradient(${vertical ? "to bottom" : "to right"}, ${color}, ${color}80)`,
+          [vertical ? "height" : "width"]: inView ? "100%" : "0%",
+        }}
+        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+      />
+    </div>
+  );
+}
+
+/* ─── ICON ORBS ─────────────────────────────────────────── */
+function IconOrb({ Icon, color, hovered }) {
+  return (
+    <div className="relative flex-shrink-0">
+      {/* Outer glow ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        animate={{ scale: hovered ? 1.35 : 1, opacity: hovered ? 0.5 : 0.2 }}
+        transition={{ duration: 0.4 }}
+        style={{ background: `radial-gradient(circle, ${color}40, transparent 70%)` }}
+      />
+      {/* Glass orb */}
+      <motion.div
+        className="relative w-14 h-14 rounded-full flex items-center justify-center
+          backdrop-blur-xl border"
+        animate={{
+          boxShadow: hovered ? `0 0 22px ${color}50, inset 0 0 16px ${color}15` : `0 0 8px ${color}25`,
+          borderColor: hovered ? `${color}55` : `${color}22`,
+          background: hovered ? `${color}18` : `${color}0d`,
+        }}
+        transition={{ duration: 0.3 }}
+      >
+        <Icon size={20} style={{ color }} strokeWidth={1.5} />
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── STEP CARD ─────────────────────────────────────────── */
+function StepCard({ step, index, isLast }) {
   const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setInView(true); },
-      { threshold }
-    );
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  return [ref, inView];
-}
-
-// ── Signal Bar (animated strength indicator) ─
-function SignalBars({ strength = 3, color = "#22d3ee" }) {
-  return (
-    <div className="flex items-end gap-[3px]">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div
-          key={i}
-          style={{
-            width: 3,
-            height: 4 + i * 3,
-            background: i <= strength ? color : "rgba(255,255,255,0.08)",
-            borderRadius: 1,
-            transition: `background 0.3s ease ${i * 60}ms`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ── Redacted Label ────────────────────────────
-function Redacted({ children, reveal = false }) {
-  return (
-    <span
-      className="relative inline-block transition-all duration-500"
-      style={{
-        background: reveal ? "transparent" : "rgba(34,211,238,0.15)",
-        color: reveal ? "inherit" : "transparent",
-        borderRadius: 2,
-        padding: "0 4px",
-        userSelect: reveal ? "auto" : "none",
-        filter: reveal ? "none" : "blur(0px)",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-// ── Data Flow Pipe (animated dots) ───────────
-function DataPipe({ active = true, color = "#22d3ee", vertical = false }) {
-  const dots = 6;
-  return (
-    <div
-      className={`flex ${vertical ? "flex-col items-center" : "items-center"} gap-1`}
-      style={{ minWidth: vertical ? 12 : 48, minHeight: vertical ? 48 : 12 }}
-    >
-      {Array.from({ length: dots }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            width: vertical ? 2 : 6,
-            height: vertical ? 6 : 2,
-            borderRadius: 99,
-            background: active ? color : "rgba(255,255,255,0.06)",
-            animation: active ? `pipeDot 1.4s ease-in-out infinite` : "none",
-            animationDelay: `${i * 0.18}s`,
-            opacity: active ? 1 : 0.2,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ── Code Snippet ──────────────────────────────
-function CodeBlock({ lines, inView }) {
-  const [revealed, setRevealed] = useState([]);
-  useEffect(() => {
-    if (!inView) return;
-    lines.forEach((_, i) => {
-      setTimeout(() => setRevealed((p) => [...p, i]), 300 + i * 220);
-    });
-  }, [inView]);
-
-  return (
-    <div
-      className="rounded-sm p-3 flex flex-col gap-1"
-      style={{
-        background: "rgba(0,0,0,0.4)",
-        border: "1px solid rgba(34,211,238,0.08)",
-        fontFamily: "'Share Tech Mono', monospace",
-        fontSize: 10,
-      }}
-    >
-      {lines.map((line, i) => (
-        <div
-          key={i}
-          className="flex gap-2 transition-all duration-300"
-          style={{
-            opacity: revealed.includes(i) ? 1 : 0,
-            transform: revealed.includes(i) ? "none" : "translateX(-6px)",
-            color: line.color || "rgba(34,211,238,0.7)",
-            letterSpacing: "0.05em",
-          }}
-        >
-          <span style={{ color: "rgba(255,255,255,0.15)", minWidth: 14 }}>{i + 1}</span>
-          <span>{line.text}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Stage Card ────────────────────────────────
-function StageCard({ stage, index, total }) {
-  const [ref, inView] = useInView(0.1);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
   const [hovered, setHovered] = useState(false);
-  const isEven = index % 2 === 0;
-  const isDecoy = stage.type === "DECOY";
-  const isCritical = stage.type === "CRITICAL";
-  const accentColor = isDecoy
-    ? "#ef4444"
-    : isCritical
-    ? "#f59e0b"
-    : "#22d3ee";
+  const Icon = step.icon;
+  const isRight = step.side === "right";
 
   return (
-    <div
-      ref={ref}
-      className="relative"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Ghost number — MASSIVE, bleeds off-screen */}
-      <div
-        className="absolute pointer-events-none select-none"
-        style={{
-          fontFamily: "'Rajdhani', sans-serif",
-          fontSize: "clamp(140px, 18vw, 220px)",
-          fontWeight: 900,
-          lineHeight: 1,
-          top: "-0.1em",
-          [isEven ? "left" : "right"]: "-0.08em",
-          color: "transparent",
-          WebkitTextStroke: `1px ${accentColor}12`,
-          opacity: inView ? 1 : 0,
-          transition: "opacity 0.8s ease",
-          zIndex: 0,
-          letterSpacing: "-0.05em",
-        }}
-      >
-        {String(index + 1).padStart(2, "0")}
-      </div>
+    <div ref={ref} className="relative">
+      {/* ── DESKTOP LAYOUT ── */}
+      <div className="hidden lg:grid lg:grid-cols-[1fr_80px_1fr] items-start gap-0">
 
-      {/* Main card grid */}
-      <div
-        className={`relative z-10 grid items-start gap-0 transition-all duration-700 ${
-          inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-        }`}
-        style={{
-          transitionDelay: `${index * 60}ms`,
-          gridTemplateColumns: isEven
-            ? "1fr 2px 1.6fr"
-            : "1.6fr 2px 1fr",
-        }}
-      >
-        {/* LEFT PANEL */}
-        <div
-          className={`py-8 ${isEven ? "pr-10 text-right" : "pl-10"}`}
-          style={{ order: isEven ? 0 : 2 }}
-        >
-          {/* Stage label */}
-          <div
-            className={`flex items-center gap-2 mb-3 ${
-              isEven ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className="font-mono text-[9px] tracking-[0.3em] px-2 py-0.5 rounded-sm"
+        {/* LEFT SLOT */}
+        <div className={`${isRight ? "pr-8 flex justify-end" : "pr-8"}`}>
+          {isRight && (
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={inView ? { opacity: 1, x: 0 } : {}}
+              transition={{ duration: 0.75, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-[440px]"
+            >
+              <Card step={step} hovered={hovered} setHovered={setHovered} inView={inView} Icon={Icon} />
+            </motion.div>
+          )}
+        </div>
+
+        {/* CENTRE — spine + node */}
+        <div className="flex flex-col items-center">
+          {/* Top connector */}
+          {index > 0 && (
+            <div className="w-px flex-1 min-h-[32px]"
               style={{
-                fontFamily: "'Share Tech Mono', monospace",
-                background: `${accentColor}12`,
-                border: `1px solid ${accentColor}30`,
-                color: accentColor,
+                borderLeft: `1px dashed rgba(255,255,255,0.1)`,
+                background: "none",
+              }}
+            />
+          )}
+          {index === 0 && <div className="min-h-[32px]" />}
+
+          {/* Node */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={inView ? { scale: 1, opacity: 1 } : {}}
+            transition={{ duration: 0.5, delay: 0.2, type: "spring", stiffness: 200 }}
+            className="relative flex-shrink-0 z-10"
+          >
+            {/* Outer pulse */}
+            {hovered && (
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                animate={{ scale: [1, 1.8], opacity: [0.6, 0] }}
+                transition={{ duration: 1.2, repeat: Infinity }}
+                style={{ background: step.color }}
+              />
+            )}
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center border backdrop-blur-xl"
+              style={{
+                background: `${step.color}18`,
+                borderColor: `${step.color}45`,
+                boxShadow: hovered ? `0 0 20px ${step.color}50` : `0 0 8px ${step.color}25`,
+                transition: "box-shadow 0.3s ease",
               }}
             >
-              STAGE {String(index + 1).padStart(2, "0")} · {stage.type}
+              <Icon size={16} style={{ color: step.color }} strokeWidth={1.5} />
             </div>
-            <SignalBars strength={stage.signal} color={accentColor} />
-          </div>
+          </motion.div>
 
-          {/* Title */}
-          <h3
-            style={{
-              fontFamily: "'Rajdhani', sans-serif",
-              fontSize: "clamp(1.5rem, 2.5vw, 2rem)",
-              fontWeight: 700,
-              color: "#e2e8f0",
-              letterSpacing: "0.02em",
-              lineHeight: 1.1,
-              marginBottom: 10,
-            }}
-          >
-            {stage.title}
-          </h3>
-
-          {/* Description */}
-          <p
-            style={{
-              fontFamily: "'Rajdhani', sans-serif",
-              fontSize: "0.95rem",
-              color: "rgba(148,163,184,0.75)",
-              lineHeight: 1.65,
-              fontWeight: 400,
-              maxWidth: 320,
-              marginLeft: isEven ? "auto" : 0,
-            }}
-          >
-            {stage.description}
-          </p>
-
-          {/* Tags */}
-          <div
-            className={`flex flex-wrap gap-2 mt-4 ${
-              isEven ? "justify-end" : "justify-start"
-            }`}
-          >
-            {stage.tags.map((t) => (
-              <span
-                key={t}
-                style={{
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: "0.18em",
-                  padding: "3px 8px",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  color: "rgba(100,116,139,1)",
-                  borderRadius: 2,
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* CENTER SPINE */}
-        <div
-          className="relative flex flex-col items-center"
-          style={{ order: 1, minHeight: 200 }}
-        >
-          {/* Spine line */}
-          <div
-            className="absolute inset-y-0 left-1/2 -translate-x-1/2"
-            style={{
-              width: 1,
-              background: `linear-gradient(to bottom, transparent, ${accentColor}40, ${accentColor}60, ${accentColor}40, transparent)`,
-            }}
-          />
-
-          {/* Center node */}
-          <div
-            className="relative z-10 mt-8"
-            style={{
-              width: 36,
-              height: 36,
-              border: `1.5px solid ${accentColor}`,
-              borderRadius: 2,
-              background: `${accentColor}10`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: hovered ? `0 0 20px ${accentColor}40` : `0 0 8px ${accentColor}20`,
-              transition: "box-shadow 0.3s ease",
-              transform: "rotate(45deg)",
-            }}
-          >
-            <div style={{ transform: "rotate(-45deg)", color: accentColor }}>
-              {stage.icon}
-            </div>
-          </div>
-
-          {/* Data pipe below node */}
-          {index < total - 1 && (
-            <div className="mt-4">
-              <DataPipe active={inView} color={accentColor} vertical />
+          {/* Bottom connector + fill */}
+          {!isLast && (
+            <div className="flex-1 w-px min-h-[80px] relative overflow-hidden"
+              style={{ borderLeft: "1px dashed rgba(255,255,255,0.07)" }}>
+              <motion.div
+                className="absolute top-0 left-0 w-px"
+                initial={{ height: "0%" }}
+                animate={inView ? { height: "100%" } : {}}
+                transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+                style={{ background: `linear-gradient(to bottom, ${step.color}80, transparent)` }}
+              />
             </div>
           )}
         </div>
 
-        {/* RIGHT PANEL */}
-        <div
-          className={`py-8 ${isEven ? "pl-10" : "pr-10"}`}
-          style={{ order: isEven ? 2 : 0 }}
-        >
-          <CodeBlock lines={stage.code} inView={inView} />
-
-          {/* Metric chips */}
-          <div className="flex flex-wrap gap-3 mt-4">
-            {stage.metrics.map((m) => (
-              <div
-                key={m.label}
-                className="flex flex-col gap-0.5"
-                style={{
-                  borderLeft: `2px solid ${accentColor}40`,
-                  paddingLeft: 8,
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "'Share Tech Mono', monospace",
-                    fontSize: 9,
-                    color: "rgba(100,116,139,1)",
-                    letterSpacing: "0.15em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {m.label}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "'Rajdhani', sans-serif",
-                    fontSize: "1rem",
-                    fontWeight: 700,
-                    color: accentColor,
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {m.value}
-                </span>
-              </div>
-            ))}
-          </div>
+        {/* RIGHT SLOT */}
+        <div className={`${!isRight ? "pl-8" : "pl-8"}`}>
+          {!isRight && (
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              animate={inView ? { opacity: 1, x: 0 } : {}}
+              transition={{ duration: 0.75, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-[440px]"
+            >
+              <Card step={step} hovered={hovered} setHovered={setHovered} inView={inView} Icon={Icon} />
+            </motion.div>
+          )}
         </div>
+      </div>
+
+      {/* ── MOBILE LAYOUT ── */}
+      <div className="lg:hidden flex gap-5">
+        {/* Left spine */}
+        <div className="flex flex-col items-center flex-shrink-0 w-10">
+          {index > 0 && <div className="w-px flex-none h-8" style={{ borderLeft: "1px dashed rgba(255,255,255,0.1)" }} />}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={inView ? { scale: 1, opacity: 1 } : {}}
+            transition={{ duration: 0.45, delay: 0.1, type: "spring" }}
+            className="w-10 h-10 rounded-full flex items-center justify-center border backdrop-blur-xl flex-shrink-0"
+            style={{
+              background: `${step.color}18`,
+              borderColor: `${step.color}45`,
+              boxShadow: `0 0 10px ${step.color}30`,
+            }}
+          >
+            <Icon size={16} style={{ color: step.color }} strokeWidth={1.5} />
+          </motion.div>
+          {!isLast && (
+            <div className="w-px flex-1 min-h-[20px]" style={{ borderLeft: "1px dashed rgba(255,255,255,0.08)" }} />
+          )}
+        </div>
+
+        {/* Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.65, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="flex-1 pb-6"
+        >
+          <Card step={step} hovered={hovered} setHovered={setHovered} inView={inView} Icon={Icon} mobile />
+        </motion.div>
       </div>
     </div>
   );
 }
 
-// ── STAGES DATA ───────────────────────────────
-const STAGES = [
-  {
-    type: "INGRESS",
-    signal: 2,
-    title: "User Authenticates",
-    description:
-      "Credentials are verified and a JWT token is issued. Identity is proven — but authentication is not trust. The token is cryptographically signed proof of who you are, nothing more.",
-    tags: ["app/api/auth/routes.py", "core/security.py", "JWT · SIGNED"],
-    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="5" width="12" height="8" rx="1" stroke="#22d3ee" strokeWidth="1.2"/><path d="M4 5V4a3 3 0 016 0v1" stroke="#22d3ee" strokeWidth="1.2"/><circle cx="7" cy="9" r="1.2" fill="#22d3ee"/></svg>,
-    code: [
-      { text: "POST /api/auth/login", color: "#22d3ee" },
-      { text: '→ verify credentials', color: "rgba(148,163,184,0.5)" },
-      { text: '→ sign JWT { user_id, exp }', color: "rgba(148,163,184,0.5)" },
-      { text: "← return: { token, session_id }", color: "#22d3ee" },
-    ],
-    metrics: [
-      { label: "Token TTL", value: "15 min" },
-      { label: "Algorithm", value: "RS256" },
-    ],
-  },
-  {
-    type: "SESSION",
-    signal: 3,
-    title: "Session Created Server-Side",
-    description:
-      "A server-side session is instantiated in Redis with a fresh risk score of 0.0. This session — not the JWT — is the authoritative source of trust state throughout the entire lifecycle.",
-    tags: ["session/store.py", "session/models.py", "REDIS · TTL"],
-    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="1" stroke="#22d3ee" strokeWidth="1.2"/><path d="M4 4h6M4 7h4M4 10h5" stroke="#22d3ee" strokeWidth="1" strokeLinecap="round"/></svg>,
-    code: [
-      { text: "session = {", color: "#22d3ee" },
-      { text: "  session_id: uuid4(),", color: "rgba(148,163,184,0.5)" },
-      { text: "  risk_score:  0.0,", color: "rgba(148,163,184,0.5)" },
-      { text: "  routing_state: 'REAL',", color: "#22d3ee" },
-      { text: "  last_activity: now()", color: "rgba(148,163,184,0.5)" },
-      { text: "}", color: "#22d3ee" },
-    ],
-    metrics: [
-      { label: "Initial Risk", value: "0.00" },
-      { label: "State", value: "REAL" },
-    ],
-  },
-  {
-    type: "MONITOR",
-    signal: 4,
-    title: "Behavior Collected Passively",
-    description:
-      "Every request passes through the telemetry middleware. Navigation velocity, API probe patterns, endpoint enumeration depth, and payload shape are extracted without the user's awareness.",
-    tags: ["middleware/telemetry.py", "behavior/collector.py", "PASSIVE · SILENT"],
-    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#22d3ee" strokeWidth="1.2"/><circle cx="7" cy="7" r="2.5" stroke="#22d3ee" strokeWidth="1"/><circle cx="7" cy="7" r="0.8" fill="#22d3ee"/></svg>,
-    code: [
-      { text: "signals = extract_features(req)", color: "#22d3ee" },
-      { text: "# api_enum, nav_velocity,", color: "rgba(100,116,139,0.6)" },
-      { text: "# endpoint_depth, payload_shape", color: "rgba(100,116,139,0.6)" },
-      { text: "apply_rules(signals, session)", color: "rgba(148,163,184,0.5)" },
-    ],
-    metrics: [
-      { label: "Signals", value: "12 types" },
-      { label: "Latency", value: "<2ms" },
-    ],
-  },
-  {
-    type: "ADVISORY",
-    signal: 4,
-    title: "Risk Engine Scores the Session",
-    description:
-      "Behavioral signals are weighted and combined into a single 0–1 risk score. The scorer is purely advisory — it calculates probability of threat, never makes access decisions.",
-    tags: ["risk/scorer.py", "risk/thresholds.py", "ADVISORY ONLY"],
-    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 10L5 6l2.5 2.5L10 4l2 2" stroke="#f59e0b" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M1 12h12" stroke="#f59e0b" strokeWidth="1" strokeLinecap="round"/></svg>,
-    code: [
-      { text: "risk = score(signals) # 0.0–1.0", color: "#f59e0b" },
-      { text: "# ADVISORY ONLY — no routing here", color: "rgba(100,116,139,0.6)" },
-      { text: "session.risk_score = risk", color: "rgba(148,163,184,0.5)" },
-      { text: "apply_decay(session, delta_t)", color: "rgba(148,163,184,0.5)" },
-    ],
-    metrics: [
-      { label: "Score Range", value: "0.0 – 1.0" },
-      { label: "Decay", value: "temporal" },
-    ],
-  },
-  {
-    type: "CRITICAL",
-    signal: 5,
-    title: "Policy Engine Routes the Session",
-    description:
-      "The policy engine reads the risk score and applies escalation rules. This is the only component that can change routing state. No other system may set routing_state directly.",
-    tags: ["policy/engine.py", "policy/rules.py", "SOLE AUTHORITY"],
-    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 4h4l-3.2 2.4 1.2 3.9L7 9.1l-3.5 2.2 1.2-3.9L1.5 5h4L7 1z" stroke="#f59e0b" strokeWidth="1.1" fill="rgba(251,191,36,0.1)"/></svg>,
-    code: [
-      { text: "if risk > THRESHOLD_HIGH:", color: "#f59e0b" },
-      { text: "  if state == 'REAL':", color: "rgba(148,163,184,0.5)" },
-      { text: "    session.routing = 'DECOY'", color: "#ef4444" },
-      { text: "    # ONE-WAY — no reversal", color: "rgba(100,116,139,0.6)" },
-      { text: "    forensics.arm(session)", color: "#ef4444" },
-    ],
-    metrics: [
-      { label: "Threshold", value: "0.65" },
-      { label: "Reversal", value: "FORBIDDEN" },
-    ],
-  },
-  {
-    type: "DECOY",
-    signal: 5,
-    title: "Attacker Enters the Phantom",
-    description:
-      "Routing middleware silently redirects all requests to the decoy system. Fake APIs return believable data from MongoDB. The attacker believes they are inside the real system.",
-    tags: ["api/decoy/routes.py", "db/mongo/repo.py", "DECEPTION · LIVE"],
-    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 4v4c0 3.5-2.8 5.8-6 6.5C1.8 13.8 1 10.5 1 8V4L7 1z" stroke="#ef4444" strokeWidth="1.2" fill="rgba(239,68,68,0.08)"/><path d="M4.5 7.5L6.5 9.5L10 5.5" stroke="#ef4444" strokeWidth="1.2" strokeLinecap="round"/></svg>,
-    code: [
-      { text: "# Attacker calls: GET /api/data", color: "#ef4444" },
-      { text: "→ middleware: routing == 'DECOY'", color: "rgba(148,163,184,0.5)" },
-      { text: "→ decoy_service.respond(req)", color: "rgba(148,163,184,0.5)" },
-      { text: "← fake_data from MongoDB", color: "#ef4444" },
-      { text: "# Real PostgreSQL: untouched", color: "rgba(100,116,139,0.6)" },
-    ],
-    metrics: [
-      { label: "DB Source", value: "MongoDB" },
-      { label: "Real DB", value: "ISOLATED" },
-    ],
-  },
-  {
-    type: "FORENSICS",
-    signal: 5,
-    title: "Intelligence Captured",
-    description:
-      "Every decoy interaction is logged with full fidelity — session ID, endpoint, payload, headers, timestamp. Canary traps are armed. The attacker's entire operation is reconstructed into a threat intelligence timeline.",
-    tags: ["forensics/logger.py", "forensics/timeline.py", "canary/detector.py"],
-    icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#22d3ee" strokeWidth="1.2"/><path d="M7 4v3.5l2 1.5" stroke="#22d3ee" strokeWidth="1.2" strokeLinecap="round"/></svg>,
-    code: [
-      { text: "forensics.log({", color: "#22d3ee" },
-      { text: "  session_id, endpoint,", color: "rgba(148,163,184,0.5)" },
-      { text: "  payload, headers, ts,", color: "rgba(148,163,184,0.5)" },
-      { text: "  canary_triggered: bool", color: "#22d3ee" },
-      { text: "})", color: "#22d3ee" },
-    ],
-    metrics: [
-      { label: "Coverage", value: "100%" },
-      { label: "Timeline", value: "rebuilt" },
-    ],
-  },
-];
+/* ─── GLASS CARD ─────────────────────────────────────────── */
+function Card({ step, hovered, setHovered, inView, Icon, mobile = false }) {
+  return (
+    <motion.div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      animate={{
+        boxShadow: hovered
+          ? `0 0 40px ${step.color}20, 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)`
+          : `0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)`,
+        borderColor: hovered ? `${step.color}35` : "rgba(255,255,255,0.08)",
+      }}
+      transition={{ duration: 0.3 }}
+      className="relative overflow-hidden border backdrop-blur-xl cursor-default"
+      style={{
+        background: hovered
+          ? `linear-gradient(135deg, ${step.color}07 0%, rgba(255,255,255,0.025) 100%)`
+          : "rgba(255,255,255,0.025)",
+        padding: mobile ? "20px" : "28px",
+      }}
+    >
+      {/* Noise */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: "160px",
+          mixBlendMode: "overlay",
+        }}
+      />
 
-// ── Main Export ───────────────────────────────
+      {/* Top-right corner glow on hover */}
+      <motion.div
+        className="absolute -top-16 -right-16 w-48 h-48 rounded-full pointer-events-none"
+        animate={{ opacity: hovered ? 1 : 0 }}
+        style={{ background: `radial-gradient(circle, ${step.color}18 0%, transparent 70%)` }}
+      />
+
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-5">
+        <IconOrb Icon={Icon} color={step.color} hovered={hovered} />
+
+        {/* Protocol ID */}
+        <div className="flex flex-col items-end gap-1.5">
+          <span
+            className="font-['JetBrains_Mono'] font-semibold px-2 py-1 border"
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.18em",
+              color: step.color,
+              borderColor: `${step.color}30`,
+              background: `${step.color}0d`,
+            }}
+          >
+            {step.id}
+          </span>
+          {step.metric && (
+            <div className="text-right">
+              <div className="font-['Space_Grotesk'] font-bold tracking-tight"
+                style={{ fontSize: 18, color: step.color, lineHeight: 1 }}>
+                {step.metric.v}
+              </div>
+              <div className="font-['JetBrains_Mono'] text-[7px] tracking-[0.16em] text-white/25 uppercase mt-0.5">
+                {step.metric.l}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Title */}
+      <h3
+        className="font-['Space_Grotesk'] font-bold tracking-tight leading-[1.1] mb-2"
+        style={{
+          fontSize: "clamp(1.15rem, 1.8vw, 1.45rem)",
+          color: hovered ? "#ffffff" : "#dde4ee",
+          transition: "color 0.25s ease",
+        }}
+      >
+        {step.title}
+      </h3>
+
+      {/* Tagline */}
+      <div className="font-['JetBrains_Mono'] text-[9px] tracking-[0.18em] mb-4"
+        style={{ color: `${step.color}70` }}>
+        {step.tagline}
+      </div>
+
+      {/* Body */}
+      <p className="font-['Space_Grotesk'] font-normal text-[13.5px] leading-[1.72]
+        text-white/38 mb-5 tracking-[-0.005em]">
+        {step.body}
+      </p>
+
+      {/* File path tags */}
+      <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
+        {step.tags.map((t) => (
+          <span key={t}
+            className="font-['JetBrains_Mono'] text-[7.5px] tracking-[0.12em] text-white/25
+              px-2 py-1 border border-white/[0.06] uppercase">
+            {t}
+          </span>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── PROGRESS INDICATOR ─────────────────────────────────── */
+function ProgressDots({ activeIndex }) {
+  return (
+    <div className="fixed right-8 top-1/2 -translate-y-1/2 z-40 hidden xl:flex flex-col gap-3">
+      {STEPS.map((s, i) => (
+        <motion.div
+          key={s.id}
+          animate={{
+            width: i === activeIndex ? 20 : 4,
+            opacity: i <= activeIndex ? 1 : 0.3,
+          }}
+          transition={{ duration: 0.3 }}
+          className="h-[3px] rounded-full"
+          style={{ background: i === activeIndex ? s.color : "rgba(255,255,255,0.2)" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ─── MAIN EXPORT ────────────────────────────────────────── */
 export default function HowItWorks() {
-  const [headerRef, headerInView] = useInView(0.2);
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start end", "end start"] });
+  const scaleY = useSpring(scrollYProgress, { stiffness: 80, damping: 20 });
+  const [activeStep, setActiveStep] = useState(0);
+
+  const [headerRef, headerInView] = [useRef(null), false];
+  const hRef = useRef(null);
+  const hV = useInView(hRef, { once: true, margin: "-50px" });
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 
-        @keyframes pipeDot {
-          0%, 100% { opacity: 0.15; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1); }
+        @keyframes gridGlow {
+          0%,100%{ opacity:.022; } 50%{ opacity:.04; }
         }
-        @keyframes scanDiag {
-          0% { transform: translateX(-100%) skewX(-20deg); }
-          100% { transform: translateX(200%) skewX(-20deg); }
-        }
-        @keyframes marqueeTape {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+        @keyframes liveRipple {
+          0%  { transform:scale(1);   opacity:.4; }
+          100%{ transform:scale(3);   opacity:0; }
         }
       `}</style>
 
       <section
-        style={{
-          background: "linear-gradient(180deg, #030a10 0%, #020608 50%, #04080e 100%)",
-          position: "relative",
-          overflow: "hidden",
-          paddingBottom: 80,
-        }}
+        ref={containerRef}
+        className="relative overflow-hidden"
+        style={{ background: "linear-gradient(180deg, #030a10 0%, #020810 100%)" }}
       >
-        {/* ── BG Grid ── */}
-        <div
+        {/* Grid bg */}
+        <div className="absolute inset-0 pointer-events-none"
           style={{
-            position: "absolute",
-            inset: 0,
             backgroundImage: `
-              linear-gradient(rgba(34,211,238,0.025) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(34,211,238,0.025) 1px, transparent 1px)
-            `,
+              linear-gradient(rgba(34,211,238,0.022) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(34,211,238,0.022) 1px, transparent 1px)`,
             backgroundSize: "40px 40px",
-            pointerEvents: "none",
+            animation: "gridGlow 8s ease-in-out infinite",
           }}
         />
 
-        {/* ── Diagonal accent slash ── */}
-        <div
+        {/* Grain */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 4,
-            background:
-              "linear-gradient(90deg, transparent, #22d3ee40, #22d3ee80, #22d3ee40, transparent)",
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            backgroundSize: "200px",
+            mixBlendMode: "overlay",
           }}
         />
 
-        {/* ── Marquee Tape at top ── */}
-        <div
-          style={{
-            borderTop: "1px solid rgba(34,211,238,0.08)",
-            borderBottom: "1px solid rgba(34,211,238,0.08)",
-            background: "rgba(34,211,238,0.03)",
-            overflow: "hidden",
-            padding: "6px 0",
-            marginBottom: 0,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              whiteSpace: "nowrap",
-              animation: "marqueeTape 18s linear infinite",
-              fontFamily: "'Share Tech Mono', monospace",
-              fontSize: 9,
-              letterSpacing: "0.25em",
-              color: "rgba(34,211,238,0.35)",
-              gap: "4rem",
-            }}
-          >
-            {Array(6).fill(
-              "PHANTOMSHIELD · ACTIVE DECEPTION FRAMEWORK · SESSION ISOLATION ACTIVE · FORENSICS ARMED · CANARY TRAPS ENABLED · ONE-WAY ESCALATION · "
-            ).map((t, i) => <span key={i}>{t}</span>)}
-          </div>
-        </div>
+        {/* Glow blobs */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none"
+          style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.045) 0%, transparent 65%)" }}
+        />
 
-        {/* ── Section Header ── */}
-        <div
-          ref={headerRef}
-          className="max-w-7xl mx-auto px-8 pt-20 pb-8"
-        >
-          <div
-            className="grid gap-6"
-            style={{ gridTemplateColumns: "auto 1fr", alignItems: "end" }}
+        {/* ── HEADER ── */}
+        <div ref={hRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pt-28 pb-20">
+          {/* Overline */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={hV ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.55 }}
+            className="flex items-center gap-3 mb-12"
           >
-            <div>
-              {/* Overline */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 16,
-                  opacity: headerInView ? 1 : 0,
-                  transform: headerInView ? "none" : "translateY(10px)",
-                  transition: "all 0.6s ease",
-                }}
-              >
-                <div style={{ display: "flex", gap: 4 }}>
-                  {[0,1,2,3,4,5,6].map(i => (
-                    <div
-                      key={i}
-                      style={{
-                        width: i < 4 ? 16 : 4,
-                        height: 2,
-                        background: i < 4 ? "#22d3ee" : "rgba(34,211,238,0.2)",
-                        borderRadius: 1,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span
-                  style={{
-                    fontFamily: "'Share Tech Mono', monospace",
-                    fontSize: 10,
-                    letterSpacing: "0.3em",
-                    color: "#22d3ee",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  OPERATIONAL SEQUENCE · 7 STAGES
-                </span>
-              </div>
-
-              {/* Main heading */}
-              <h2
-                style={{
-                  fontFamily: "'Rajdhani', sans-serif",
-                  fontWeight: 700,
-                  fontSize: "clamp(2.8rem, 5vw, 4.5rem)",
-                  lineHeight: 1,
-                  letterSpacing: "-0.01em",
-                  color: "#f1f5f9",
-                  opacity: headerInView ? 1 : 0,
-                  transform: headerInView ? "none" : "translateY(16px)",
-                  transition: "all 0.7s ease 0.1s",
-                }}
-              >
-                HOW IT{" "}
-                <span
-                  style={{
-                    WebkitTextStroke: "1px rgba(34,211,238,0.8)",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >
-                  OPERATES.
-                </span>
-              </h2>
+            <div className="relative w-2 h-2">
+              <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-30"
+                style={{ animation: "liveRipple 2.2s ease-out infinite" }} />
+              <span className="absolute inset-[2px] rounded-full bg-cyan-400" />
             </div>
+            <span className="font-['JetBrains_Mono'] text-[9px] tracking-[0.26em] text-cyan-400/55 uppercase">
+              PhantomShield · Operational Sequence · 8 Stages
+            </span>
+            <div className="flex-1 h-px"
+              style={{ background: "linear-gradient(90deg, rgba(34,211,238,0.15), transparent)" }}
+            />
+          </motion.div>
 
-            {/* Right — dossier stamp */}
-            <div
-              style={{
-                marginLeft: "auto",
-                textAlign: "right",
-                opacity: headerInView ? 1 : 0,
-                transition: "opacity 0.8s ease 0.3s",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-block",
-                  border: "2px solid rgba(239,68,68,0.3)",
-                  padding: "8px 16px",
-                  transform: "rotate(-1.5deg)",
-                  position: "relative",
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "'Share Tech Mono', monospace",
-                    fontSize: 11,
-                    letterSpacing: "0.25em",
-                    color: "rgba(239,68,68,0.6)",
-                    fontWeight: 700,
-                  }}
-                >
-                  CLASSIFIED
-                </div>
-                <div
-                  style={{
-                    fontFamily: "'Share Tech Mono', monospace",
-                    fontSize: 8,
-                    letterSpacing: "0.2em",
-                    color: "rgba(239,68,68,0.35)",
-                  }}
-                >
-                  THREAT DOSSIER · REF: PS-v1
-                </div>
-                {/* Corner marks */}
-                {["top-0 left-0","top-0 right-0","bottom-0 left-0","bottom-0 right-0"].map((pos, i) => (
-                  <div key={i} className={`absolute ${pos} w-2 h-2`}
-                    style={{ border: "1px solid rgba(239,68,68,0.4)",
-                      borderRight: pos.includes("right") ? undefined : "none",
-                      borderLeft: pos.includes("left") ? undefined : "none",
-                      borderBottom: pos.includes("bottom") ? undefined : "none",
-                      borderTop: pos.includes("top") ? undefined : "none",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Desc + breadcrumb */}
-          <div
-            style={{
-              marginTop: 20,
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 24,
-              flexWrap: "wrap",
-              opacity: headerInView ? 1 : 0,
-              transform: headerInView ? "none" : "translateY(10px)",
-              transition: "all 0.7s ease 0.25s",
-              borderTop: "1px solid rgba(34,211,238,0.07)",
-              paddingTop: 16,
-            }}
+          {/* Headline */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={hV ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.85, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           >
-            <p
-              style={{
-                fontFamily: "'Rajdhani', sans-serif",
-                fontSize: "1rem",
-                fontWeight: 300,
-                color: "rgba(148,163,184,0.65)",
-                lineHeight: 1.7,
-                maxWidth: 560,
-                letterSpacing: "0.01em",
-              }}
+            <div className="font-['JetBrains_Mono'] text-[11px] tracking-[0.1em] text-cyan-400/30 mb-4">
+              // From authentication to full forensic capture — eight deterministic stages.
+            </div>
+            <h2
+              className="font-['Space_Grotesk'] font-bold uppercase tracking-tighter leading-[0.9]"
+              style={{ fontSize: "clamp(3rem, 7.5vw, 7.5rem)", color: "#f1f5f9" }}
             >
-              From the first authentication handshake to full forensic capture —
-              every stage is deterministic, isolated, and architecturally enforced.
-              No configuration toggles. No ambiguity.
+              THE
+              <span style={{
+                WebkitTextStroke: "1.5px rgba(34,211,238,0.65)",
+                WebkitTextFillColor: "transparent",
+                marginLeft: "0.18em",
+              }}>
+                LOGIC
+              </span>
+              <span style={{ color: "#f1f5f9", marginLeft: "0.18em" }}>FLOW.</span>
+            </h2>
+          </motion.div>
+
+          {/* Sub row */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={hV ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, delay: 0.3 }}
+            className="mt-10 flex items-end justify-between gap-10 border-t pt-7"
+            style={{ borderColor: "rgba(34,211,238,0.07)" }}
+          >
+            <p className="font-['Space_Grotesk'] text-[15px] leading-[1.75] text-white/38
+              max-w-[520px] tracking-[-0.005em]">
+              Every stage is deterministic, isolated, and architecturally enforced.
+              No configuration toggle. No ambiguity. No path back.
             </p>
-            <div style={{ display: "flex", gap: 24 }}>
-              {[
-                { n: "07", label: "Operational Stages" },
-                { n: "∞", label: "One-Way Escalation" },
-                { n: "0", label: "DB Crossover Events" },
-              ].map((s) => (
-                <div key={s.label} style={{ textAlign: "right" }}>
-                  <div
-                    style={{
-                      fontFamily: "'Rajdhani', sans-serif",
-                      fontSize: "1.8rem",
-                      fontWeight: 700,
-                      color: "#22d3ee",
-                      lineHeight: 1,
-                    }}
-                  >
-                    {s.n}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: 8,
-                      color: "rgba(100,116,139,1)",
-                      letterSpacing: "0.15em",
-                      textTransform: "uppercase",
-                      marginTop: 2,
-                    }}
-                  >
-                    {s.label}
-                  </div>
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              {STEPS.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: s.color, opacity: 0.7 }} />
+                  {i < STEPS.length - 1 && (
+                    <div className="w-6 h-px" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }} />
+                  )}
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Divider rule ── */}
-        <div
-          style={{
-            maxWidth: "80rem",
-            margin: "0 auto",
-            padding: "0 2rem",
-          }}
-        >
-          <div
-            style={{
-              height: 1,
-              background:
-                "linear-gradient(90deg, transparent, rgba(34,211,238,0.25) 30%, rgba(34,211,238,0.25) 70%, transparent)",
-            }}
-          />
-        </div>
-
-        {/* ── Stages ── */}
-        <div
-          style={{
-            maxWidth: "80rem",
-            margin: "0 auto",
-            padding: "0 2rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: 0,
-          }}
-        >
-          {STAGES.map((stage, i) => (
-            <StageCard key={i} stage={stage} index={i} total={STAGES.length} />
-          ))}
-        </div>
-
-        {/* ── Terminal Footer Strip ── */}
-        <div
-          style={{
-            maxWidth: "80rem",
-            margin: "48px auto 0",
-            padding: "0 2rem",
-          }}
-        >
-          <div
-            style={{
-              border: "1px solid rgba(34,211,238,0.12)",
-              background: "rgba(34,211,238,0.02)",
-              padding: "16px 24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 16,
-            }}
-          >
-            <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
-              {[
-                { label: "Auth Strategy", value: "JWT + Server-Side Session" },
-                { label: "Risk Engine", value: "Advisory · Never Routes" },
-                { label: "Escalation", value: "REAL → DECOY · Irreversible" },
-                { label: "DB Isolation", value: "PostgreSQL / MongoDB · Zero Crossover" },
-              ].map((item) => (
-                <div key={item.label}>
-                  <div
-                    style={{
-                      fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: 8,
-                      letterSpacing: "0.2em",
-                      color: "rgba(100,116,139,1)",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {item.label}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "'Rajdhani', sans-serif",
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      color: "rgba(148,163,184,0.8)",
-                      letterSpacing: "0.04em",
-                      marginTop: 2,
-                    }}
-                  >
-                    {item.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22d3ee", animation: "pulse 2s infinite" }} />
-              <span
-                style={{
-                  fontFamily: "'Share Tech Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: "0.2em",
-                  color: "#22d3ee",
-                }}
-              >
-                ALL SYSTEMS NOMINAL
+              <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.15em]
+                text-white/22 uppercase ml-3">
+                8 / 8 stages
               </span>
             </div>
+          </motion.div>
+        </div>
+
+        {/* ── STEPS ── */}
+        <div className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-32">
+          {/* Outer spine background (desktop only) */}
+          <div className="hidden lg:block absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: "auto", width: 1,
+              borderLeft: "1px dashed rgba(255,255,255,0.05)",
+              height: "100%",
+            }}
+          />
+
+          <div className="flex flex-col gap-0">
+            {STEPS.map((step, index) => (
+              <StepCard
+                key={step.id}
+                step={step}
+                index={index}
+                isLast={index === STEPS.length - 1}
+              />
+            ))}
           </div>
         </div>
+
+        {/* ── BOTTOM RULE ── */}
+        <div className="max-w-[88rem] mx-auto px-10 pb-24">
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0 }}
+            whileInView={{ opacity: 1, scaleX: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="origin-left"
+          >
+            <div className="flex items-center gap-5 p-6 border border-white/[0.07]
+              backdrop-blur-xl bg-white/[0.02]">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.22em]
+                  text-cyan-400/45 uppercase">
+                  Design Standard
+                </span>
+                <span className="font-['Space_Grotesk'] font-semibold text-[15px]
+                  tracking-tight text-white/65">
+                  "Escalation is one-way. Isolation is structural. Deception is architectural."
+                </span>
+              </div>
+              <div className="ml-auto flex-shrink-0 flex items-center gap-3">
+                <div className="flex gap-3">
+                  {[
+                    { label: "8", sub: "Stages" },
+                    { label: "0", sub: "Reversals" },
+                    { label: "∞", sub: "Deception TTL" },
+                  ].map((s) => (
+                    <div key={s.sub} className="text-right">
+                      <div className="font-['Space_Grotesk'] font-bold text-xl tracking-tight text-cyan-400 leading-none">
+                        {s.label}
+                      </div>
+                      <div className="font-['JetBrains_Mono'] text-[7px] tracking-[0.14em]
+                        text-white/22 uppercase mt-1">
+                        {s.sub}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
       </section>
     </>
   );

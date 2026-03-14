@@ -1,646 +1,604 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import {
+  Github, Twitter, Linkedin, Globe,
+  Send, Shield, ArrowUpRight,
+  Terminal, MapPin, Clock,
+  Cpu, Activity,
+} from "lucide-react";
 
-/* ─────────────────────────────────────────────────────────────
-   PHANTOMSHIELD — FOOTER
-   Brand: #030a10 · #22d3ee · #ef4444 · #f59e0b · #a78bfa
-   Fonts: Space Grotesk · JetBrains Mono
-   Style: Brand-consistent · Editorial · Professional breathing
-───────────────────────────────────────────────────────────── */
+const GRAIN = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
-const noise = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+/* ─── NAV COLUMNS ─────────────────────────────────────────── */
+const NAV = [
+  {
+    heading: "System",
+    links: [
+      { label: "Architecture",      href: "#" },
+      { label: "How It Works",      href: "#" },
+      { label: "Risk Engine",       href: "#" },
+      { label: "Policy Engine",     href: "#" },
+      { label: "Forensics Layer",   href: "#" },
+    ],
+  },
+  {
+    heading: "Resources",
+    links: [
+      { label: "Documentation",     href: "#" },
+      { label: "API Reference",     href: "#" },
+      { label: "Attack Simulation", href: "#" },
+      { label: "Threat Model",      href: "#" },
+      { label: "Canary Design",     href: "#" },
+    ],
+  },
+  {
+    heading: "Project",
+    links: [
+      { label: "GitHub Repository", href: "#" },
+      { label: "Changelog",         href: "#" },
+      { label: "Roadmap",           href: "#" },
+      { label: "Contributors",      href: "#" },
+      { label: "Security Policy",   href: "#" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { label: "MIT License",       href: "#" },
+      { label: "Privacy Policy",    href: "#" },
+      { label: "Terms of Use",      href: "#" },
+      { label: "Responsible Disc.", href: "#" },
+      { label: "Data Handling",     href: "#" },
+    ],
+  },
+];
 
-function useInView(t = 0.05) {
-  const ref = useRef(null);
-  const [v, setV] = useState(false);
-  useEffect(() => {
-    const o = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setV(true); }, { threshold: t }
-    );
-    if (ref.current) o.observe(ref.current);
-    return () => o.disconnect();
-  }, []);
-  return [ref, v];
-}
-
-/* ── NAV LINK ── */
-function FootLink({ label, tag, delay, live }) {
+/* ─── FOOT LINK ───────────────────────────────────────────── */
+function FootLink({ label, href, delay, inView }) {
   const [hov, setHov] = useState(false);
   return (
-    <a
-      href="#"
+    <motion.a
+      href={href}
+      initial={{ opacity: 0, x: -8 }}
+      animate={inView ? { opacity: 1, x: 0 } : {}}
+      transition={{ duration: 0.45, delay }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      style={{
-        display: "flex", alignItems: "center",
-        justifyContent: "space-between",
-        padding: "12px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
-        textDecoration: "none",
-        opacity: live ? 1 : 0,
-        transform: live ? "none" : "translateX(-10px)",
-        transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
-        cursor: "pointer",
-        gap: 16,
-      }}
+      className="flex items-center gap-0 group"
+      style={{ textDecoration: "none", display: "flex", alignItems: "center" }}
     >
-      <span style={{
-        fontFamily: "'Space Grotesk', sans-serif",
-        fontWeight: hov ? 600 : 400,
-        fontSize: "0.875rem",
-        letterSpacing: "-0.01em",
-        color: hov ? "#f1f5f9" : "rgba(255,255,255,0.42)",
-        transition: "color 0.2s ease, font-weight 0.2s ease",
-      }}>
-        {label}
-      </span>
-      {tag && (
-        <span style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 7, letterSpacing: "0.16em",
-          color: hov ? "rgba(34,211,238,0.6)" : "rgba(255,255,255,0.15)",
-          transition: "color 0.2s ease",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
-        }}>
-          {tag}
-        </span>
-      )}
-      <svg
-        width="10" height="10" viewBox="0 0 10 10" fill="none"
+      {/* Caret */}
+      <motion.span
+        animate={{ opacity: hov ? 1 : 0, x: hov ? 0 : -6, width: hov ? 14 : 0 }}
+        transition={{ duration: 0.18 }}
+        className="font-['JetBrains_Mono'] overflow-hidden"
+        style={{ fontSize: 10, color: "#22d3ee", flexShrink: 0, display: "inline-block" }}
+      >
+        &gt;{" "}
+      </motion.span>
+
+      <span
+        className="font-['JetBrains_Mono'] transition-colors duration-200"
         style={{
-          opacity: hov ? 1 : 0,
-          transform: hov ? "translate(0,0)" : "translate(-4px,4px)",
-          transition: "all 0.2s ease",
-          flexShrink: 0,
+          fontSize: 11,
+          letterSpacing: "0.06em",
+          color: hov ? "rgba(255,255,255,0.72)" : "rgba(255,255,255,0.32)",
+          lineHeight: 1,
         }}
       >
-        <path d="M1 9L9 1M9 1H3M9 1v6" stroke="#22d3ee" strokeWidth="1.2" strokeLinecap="round"/>
-      </svg>
-    </a>
-  );
-}
-
-/* ── STATUS CHIP ── */
-function StatusChip({ label, status, color }) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center",
-      justifyContent: "space-between",
-      padding: "10px 16px",
-      border: "1px solid rgba(255,255,255,0.05)",
-      background: "rgba(255,255,255,0.02)",
-      backdropFilter: "blur(8px)",
-    }}>
-      <span style={{
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 8, letterSpacing: "0.14em",
-        color: "rgba(255,255,255,0.3)",
-        textTransform: "uppercase",
-      }}>
         {label}
       </span>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <div style={{
-          width: 5, height: 5, borderRadius: "50%",
-          background: color,
-          boxShadow: `0 0 6px ${color}`,
-          animation: "statusPulse 2.5s ease-in-out infinite",
-        }} />
-        <span style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 8, letterSpacing: "0.14em",
-          color,
-          textTransform: "uppercase",
-        }}>
-          {status}
-        </span>
-      </div>
-    </div>
+
+      {/* External arrow — faint */}
+      <motion.div
+        animate={{ opacity: hov ? 0.4 : 0 }}
+        transition={{ duration: 0.18 }}
+        className="ml-1.5"
+      >
+        <ArrowUpRight size={9} color="#22d3ee" />
+      </motion.div>
+    </motion.a>
   );
 }
 
-/* ── SOCIAL ICON ── */
-function Social({ href, label, live, delay }) {
+/* ─── SOCIAL ICON ─────────────────────────────────────────── */
+function SocialBtn({ Icon, label, color = "#22d3ee", href, delay, inView }) {
   const [hov, setHov] = useState(false);
   return (
-    <a
+    <motion.a
       href={href}
+      aria-label={label}
+      initial={{ opacity: 0, y: 10 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay }}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: 38, height: 38,
-        border: hov ? "1px solid rgba(34,211,238,0.4)" : "1px solid rgba(255,255,255,0.08)",
-        background: hov ? "rgba(34,211,238,0.07)" : "rgba(255,255,255,0.025)",
-        backdropFilter: "blur(8px)",
-        textDecoration: "none",
-        transition: "all 0.25s ease",
-        opacity: live ? 1 : 0,
-        transform: live ? "none" : "translateY(10px)",
-        transitionProperty: "border, background, opacity, transform",
-        transitionDuration: "0.25s, 0.25s, 0.5s, 0.5s",
-        transitionDelay: `0ms, 0ms, ${delay}ms, ${delay}ms`,
-      }}
-      aria-label={label}
+      style={{ textDecoration: "none" }}
     >
-      <span style={{
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 9, letterSpacing: "0.08em",
-        color: hov ? "#22d3ee" : "rgba(255,255,255,0.4)",
-        transition: "color 0.25s ease",
-      }}>
-        {label}
-      </span>
-    </a>
+      <motion.div
+        animate={{
+          borderColor: hov ? `${color}50` : "rgba(255,255,255,0.1)",
+          background: hov ? `${color}12` : "rgba(255,255,255,0.03)",
+          boxShadow: hov
+            ? `0 0 16px ${color}40, 0 0 32px ${color}18`
+            : "none",
+        }}
+        transition={{ duration: 0.25 }}
+        className="w-9 h-9 flex items-center justify-center border backdrop-blur-sm"
+        style={{ borderRadius: 0 }}
+      >
+        <motion.div
+          animate={{ color: hov ? color : "rgba(255,255,255,0.3)" }}
+          transition={{ duration: 0.22 }}
+        >
+          <Icon size={15} strokeWidth={1.6} />
+        </motion.div>
+      </motion.div>
+    </motion.a>
   );
 }
 
-/* ── MAIN ── */
+/* ─── SYSTEM CLOCK ────────────────────────────────────────── */
+function SystemClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const timeStr = `${pad(time.getUTCHours())}:${pad(time.getUTCMinutes())}:${pad(time.getUTCSeconds())}`;
+  return (
+    <span className="font-['JetBrains_Mono'] tabular-nums"
+      style={{ fontSize: 10, letterSpacing: "0.12em", color: "rgba(34,211,238,0.5)" }}>
+      {timeStr} UTC
+    </span>
+  );
+}
+
+/* ─── NEWSLETTER INPUT ────────────────────────────────────── */
+function NewsletterInput({ inView }) {
+  const [val, setVal] = useState("");
+  const [sent, setSent] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!val.trim()) return;
+    setSent(true);
+    setTimeout(() => setSent(false), 3000);
+    setVal("");
+  };
+
+  return (
+    <motion.form
+      onSubmit={handleSubmit}
+      initial={{ opacity: 0, y: 16 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {/* Label */}
+      <div className="font-['Space_Grotesk'] font-bold uppercase tracking-widest mb-1"
+        style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: "0.18em" }}>
+        Stay Updated
+      </div>
+      <div className="font-['JetBrains_Mono'] mb-5"
+        style={{ fontSize: 9, letterSpacing: "0.14em", color: "rgba(255,255,255,0.2)" }}>
+        // deployment alerts · architecture updates · threat briefs
+      </div>
+
+      {/* Input group */}
+      <div className="relative flex items-stretch">
+        {/* Glow border on focus */}
+        <motion.div
+          className="absolute -inset-px pointer-events-none"
+          animate={{
+            boxShadow: focused
+              ? "0 0 0 1px rgba(34,211,238,0.4), 0 0 20px rgba(34,211,238,0.12)"
+              : "0 0 0 1px rgba(255,255,255,0.07)",
+          }}
+          transition={{ duration: 0.25 }}
+        />
+
+        {/* Terminal prompt */}
+        <div
+          className="flex items-center px-3 border-r flex-shrink-0"
+          style={{
+            background: "rgba(34,211,238,0.05)",
+            backdropFilter: "blur(16px)",
+            borderColor: "rgba(255,255,255,0.07)",
+            borderTop: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            borderLeft: "1px solid rgba(255,255,255,0.07)",
+          }}
+        >
+          <Terminal size={11} color="rgba(34,211,238,0.5)" />
+        </div>
+
+        {/* Input */}
+        <input
+          type="email"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="enter@your.email"
+          className="flex-1 outline-none"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+            letterSpacing: "0.08em",
+            color: "rgba(255,255,255,0.65)",
+            background: "rgba(255,255,255,0.03)",
+            backdropFilter: "blur(16px)",
+            border: "none",
+            borderTop: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            padding: "12px 14px",
+            caretColor: "#22d3ee",
+          }}
+          // placeholder color via CSS
+        />
+
+        {/* Submit button */}
+        <motion.button
+          type="submit"
+          whileHover={{
+            background: "#22d3ee",
+            boxShadow: "0 0 24px rgba(34,211,238,0.45)",
+          }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ duration: 0.22 }}
+          className="flex items-center gap-2 px-5 flex-shrink-0"
+          style={{
+            background: "rgba(34,211,238,0.15)",
+            border: "1px solid rgba(34,211,238,0.3)",
+            cursor: "pointer",
+            outline: "none",
+          }}
+        >
+          <motion.span
+            animate={{ color: "#030a10" }}
+            className="font-['Space_Grotesk'] font-bold uppercase"
+            style={{ fontSize: 10, letterSpacing: "0.14em", color: "#22d3ee" }}
+          >
+            {sent ? "Sent ✓" : "Deploy"}
+          </motion.span>
+          {!sent && <Send size={11} color="#22d3ee" />}
+        </motion.button>
+      </div>
+
+      {/* Hint */}
+      <div className="font-['JetBrains_Mono'] mt-2.5"
+        style={{ fontSize: 8, letterSpacing: "0.14em", color: "rgba(255,255,255,0.15)" }}>
+        No spam. Unsubscribe anytime. Zero tracking.
+      </div>
+    </motion.form>
+  );
+}
+
+/* ─── STATUS STRIP ────────────────────────────────────────── */
+function StatusStrip({ inView }) {
+  const items = [
+    { icon: Activity, label: "All Systems",   val: "Operational",  color: "#10b981" },
+    { icon: Shield,   label: "Threat Level",  val: "Monitoring",   color: "#22d3ee" },
+    { icon: Cpu,      label: "Risk Engine",   val: "Advisory",     color: "#f59e0b" },
+    { icon: Globe,    label: "Decoy Layer",   val: "Active",       color: "#a78bfa" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={inView ? { opacity: 1 } : {}}
+      transition={{ duration: 0.6, delay: 0.4 }}
+      className="grid grid-cols-2 sm:grid-cols-4 gap-[1px]"
+      style={{ background: "rgba(255,255,255,0.04)" }}
+    >
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <div key={item.label}
+            className="flex items-center gap-2.5 px-4 py-3"
+            style={{ background: "#030a10" }}
+          >
+            <Icon size={11} color={item.color} strokeWidth={1.5} />
+            <div>
+              <div className="font-['JetBrains_Mono']"
+                style={{ fontSize: 7.5, letterSpacing: "0.16em", color: "rgba(255,255,255,0.22)", textTransform: "uppercase" }}>
+                {item.label}
+              </div>
+              <div className="font-['Space_Grotesk'] font-semibold"
+                style={{ fontSize: 11, letterSpacing: "-0.01em", color: item.color, marginTop: 1 }}>
+                {item.val}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </motion.div>
+  );
+}
+
+/* ─── MAIN FOOTER ─────────────────────────────────────────── */
 export default function Footer() {
-  const [fRef, fV] = useInView(0.05);
-  const [bRef, bV] = useInView(0.1);
-  const year = new Date().getFullYear();
-
-  const nav = [
-    {
-      heading: "System",
-      links: [
-        { label: "Architecture",        tag: "docs/architecture.md" },
-        { label: "Threat Model",         tag: "docs/threat_model.md" },
-        { label: "Risk & Policy",        tag: "docs/risk_policy.md" },
-        { label: "Canary Design",        tag: "docs/canary_design.md" },
-        { label: "Attack Analysis",      tag: "docs/attack_analysis.md" },
-      ],
-    },
-    {
-      heading: "Layers",
-      links: [
-        { label: "Auth & Session",       tag: "app/api/auth/" },
-        { label: "Behaviour Engine",     tag: "app/behavior/" },
-        { label: "Policy Engine",        tag: "app/policy/" },
-        { label: "Decoy APIs",           tag: "app/api/decoy/" },
-        { label: "Forensics",            tag: "app/forensics/" },
-      ],
-    },
-    {
-      heading: "Develop",
-      links: [
-        { label: "API Reference",        tag: "v1.0" },
-        { label: "Attack Simulation",    tag: "attacks/" },
-        { label: "ML Module",            tag: "ml/ · optional" },
-        { label: "Frontend Source",      tag: "frontend/" },
-        { label: "Docker Compose",       tag: "docker-compose.yml" },
-      ],
-    },
-  ];
-
-  const statuses = [
-    { label: "Deception Layer",   status: "Active",    color: "#22d3ee" },
-    { label: "Forensic Capture",  status: "Armed",     color: "#22d3ee" },
-    { label: "Canary Traps",      status: "Live",      color: "#f59e0b" },
-    { label: "Real DB",           status: "Isolated",  color: "#10b981" },
-  ];
+  const ref     = useRef(null);
+  const inView  = useInView(ref, { once: true, margin: "-40px" });
+  const year    = new Date().getFullYear();
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 
-        @keyframes breatheGlow {
-          0%,100%{ opacity:.045; transform:scale(1); }
-          50%    { opacity:.1;   transform:scale(1.04); }
+        input::placeholder {
+          color: rgba(255,255,255,0.18);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.08em;
         }
-        @keyframes statusPulse {
-          0%,100%{ opacity:.7; }
-          50%    { opacity:1; }
+        @keyframes liveRipple {
+          0%  { transform:scale(1);   opacity:.4; }
+          100%{ transform:scale(3.2); opacity:0;  }
         }
-        @keyframes tickerScroll {
+        @keyframes breathe {
+          0%,100%{ opacity:.04; }
+          50%    { opacity:.08; }
+        }
+        @keyframes ticker {
           0%  { transform:translateX(0); }
           100%{ transform:translateX(-50%); }
-        }
-        @keyframes riseIn {
-          from{ opacity:0; transform:translateY(18px); }
-          to  { opacity:1; transform:translateY(0); }
-        }
-        @keyframes ripple {
-          0%  { transform:scale(1);   opacity:.4; }
-          100%{ transform:scale(3);   opacity:0; }
         }
       `}</style>
 
       <footer
-        ref={fRef}
-        style={{
-          background: "#030a10",
-          position: "relative",
-          overflow: "hidden",
-          fontFamily: "'Space Grotesk', sans-serif",
-        }}
+        ref={ref}
+        className="relative overflow-hidden"
+        style={{ background: "#030a10", fontFamily: "'Space Grotesk', sans-serif" }}
       >
         {/* 40px grid */}
-        <div style={{
-          position: "absolute", inset: 0, pointerEvents: "none",
-          backgroundImage: `
-            linear-gradient(rgba(34,211,238,0.018) 1px,transparent 1px),
-            linear-gradient(90deg,rgba(34,211,238,0.018) 1px,transparent 1px)`,
-          backgroundSize: "40px 40px",
-        }} />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(34,211,238,0.018) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(34,211,238,0.018) 1px, transparent 1px)`,
+            backgroundSize: "40px 40px",
+          }}
+        />
 
         {/* Grain */}
-        <div style={{
-          position: "absolute", inset: 0, pointerEvents: "none",
-          backgroundImage: noise, backgroundSize: "200px",
-          opacity: 0.028, mixBlendMode: "overlay",
-        }} />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ backgroundImage: GRAIN, backgroundSize: "200px", opacity: 0.028, mixBlendMode: "overlay" }}
+        />
 
-        {/* Ambient glow — top */}
-        <div style={{
-          position: "absolute", top: "-20%", left: "50%",
-          transform: "translateX(-50%)",
-          width: 900, height: 400,
-          background: "radial-gradient(ellipse,rgba(34,211,238,0.04) 0%,transparent 65%)",
-          animation: "breatheGlow 11s ease-in-out infinite",
-          pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", bottom: "10%", right: "5%",
-          width: 400, height: 400,
-          background: "radial-gradient(ellipse,rgba(167,139,250,0.03) 0%,transparent 65%)",
-          animation: "breatheGlow 16s ease-in-out infinite 6s",
-          pointerEvents: "none",
-        }} />
-
-        {/* ══ TOP DIVIDER TAPE ══════════════════════════════ */}
-        <div style={{
-          borderBottom: "1px solid rgba(34,211,238,0.07)",
-          overflow: "hidden",
-          padding: "7px 0",
-        }}>
-          <div style={{
-            display: "flex", whiteSpace: "nowrap",
-            animation: "tickerScroll 28s linear infinite",
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 8, letterSpacing: "0.24em",
-            color: "rgba(34,211,238,0.22)", gap: "5rem",
-          }}>
-            {Array(6).fill(
-              "AUTH ≠ TRUST · SESSION IS SOURCE OF TRUTH · RISK ENGINE IS ADVISORY · POLICY ENGINE OWNS ROUTING · ESCALATION IS ONE-WAY · DECOY NEVER TOUCHES POSTGRES · 100% FORENSIC COVERAGE · "
-            ).map((t, i) => <span key={i}>{t}</span>)}
-          </div>
-        </div>
-
-        {/* ══ BIG CTA BLOCK ════════════════════════════════ */}
-        <div
-          ref={bRef}
+        {/* Top radial glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
           style={{
-            maxWidth: "86rem", margin: "0 auto",
-            padding: "80px 2.5rem 72px",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 60,
-            alignItems: "center",
+            width: 900, height: 500,
+            background: "radial-gradient(ellipse, rgba(34,211,238,0.045) 0%, transparent 65%)",
+            animation: "breathe 12s ease-in-out infinite",
           }}
-        >
-          {/* Left */}
-          <div style={{
-            opacity: bV ? 1 : 0,
-            animation: bV ? "riseIn 0.9s cubic-bezier(0.16,1,0.3,1) both" : "none",
-          }}>
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8, letterSpacing: "0.26em",
-              color: "rgba(34,211,238,0.4)",
-              textTransform: "uppercase",
-              marginBottom: 20,
-            }}>
-              // Ready to deploy
-            </div>
-            <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 700,
-              fontSize: "clamp(2.4rem, 5.5vw, 5.5rem)",
-              lineHeight: 0.92,
-              letterSpacing: "-0.04em",
-              textTransform: "uppercase",
-              margin: "0 0 0",
-              color: "#f1f5f9",
-            }}>
-              Stop alerting.
-            </h2>
-            <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 700,
-              fontSize: "clamp(2.4rem, 5.5vw, 5.5rem)",
-              lineHeight: 0.92,
-              letterSpacing: "-0.04em",
-              textTransform: "uppercase",
-              margin: "0 0 28px",
-              color: "#22d3ee",
-            }}>
-              Start collecting.
-            </h2>
-            <p style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 400, fontSize: "0.95rem",
-              lineHeight: 1.75, letterSpacing: "-0.005em",
-              color: "rgba(255,255,255,0.38)",
-              margin: "0 0 36px",
-              maxWidth: 480,
-            }}>
-              PhantomShield turns every intrusion attempt into a forensic intelligence asset.
-              Deploy in minutes. Collect indefinitely.
-            </p>
+        />
 
-            {/* Command line */}
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 12,
-              padding: "14px 20px",
-              background: "rgba(255,255,255,0.025)",
-              backdropFilter: "blur(16px)",
-              border: "1px solid rgba(255,255,255,0.07)",
-            }}>
-              <span style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9, letterSpacing: "0.08em",
-                color: "rgba(34,211,238,0.5)",
-              }}>$</span>
-              <span style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9, letterSpacing: "0.06em",
-                color: "rgba(255,255,255,0.55)",
-              }}>
-                uvicorn app.main:app --reload
-              </span>
-              <div style={{
-                width: 6, height: 13,
-                background: "#22d3ee", opacity: 0.6,
-                animation: "statusPulse 1s step-end infinite",
-              }} />
-            </div>
-          </div>
-
-          {/* Right — CTA buttons + status */}
-          <div style={{
-            display: "flex", flexDirection: "column",
-            gap: 12, flexShrink: 0, minWidth: 240,
-            opacity: bV ? 1 : 0,
-            transform: bV ? "none" : "translateY(20px)",
-            transition: "all 0.8s ease 0.2s",
-          }}>
-            <button
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700, fontSize: "0.85rem",
-                letterSpacing: "-0.01em",
-                padding: "15px 32px",
-                background: "#22d3ee",
-                color: "#030a10",
-                border: "none", cursor: "pointer",
-                transition: "all 0.22s ease",
-                textTransform: "uppercase",
-              }}
-              onMouseEnter={e => { e.target.style.boxShadow = "0 0 30px rgba(34,211,238,0.35)"; e.target.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={e => { e.target.style.boxShadow = "none"; e.target.style.transform = "none"; }}
-            >
-              Deploy PhantomShield
-            </button>
-            <button
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 600, fontSize: "0.85rem",
-                letterSpacing: "-0.01em",
-                padding: "15px 32px",
-                background: "transparent",
-                color: "rgba(34,211,238,0.55)",
-                border: "1px solid rgba(34,211,238,0.2)",
-                cursor: "pointer", transition: "all 0.22s ease",
-                textTransform: "uppercase",
-              }}
-              onMouseEnter={e => { e.target.style.borderColor = "rgba(34,211,238,0.5)"; e.target.style.color = "#22d3ee"; e.target.style.background = "rgba(34,211,238,0.05)"; }}
-              onMouseLeave={e => { e.target.style.borderColor = "rgba(34,211,238,0.2)"; e.target.style.color = "rgba(34,211,238,0.55)"; e.target.style.background = "transparent"; }}
-            >
-              View Architecture
-            </button>
-
-            {/* Status grid */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-              {statuses.map((s, i) => <StatusChip key={i} {...s} />)}
-            </div>
-          </div>
-        </div>
-
-        {/* ══ NAV + BRAND BLOCK ════════════════════════════ */}
-        <div style={{
-          maxWidth: "86rem", margin: "0 auto",
-          padding: "64px 2.5rem 0",
-          display: "grid",
-          gridTemplateColumns: "1.6fr 1fr 1fr 1fr",
-          gap: 0,
-        }}>
-
-          {/* Brand column */}
-          <div style={{
-            paddingRight: 64, paddingBottom: 64,
-            borderRight: "1px solid rgba(255,255,255,0.04)",
-            opacity: fV ? 1 : 0,
-            transform: fV ? "none" : "translateY(16px)",
-            transition: "all 0.7s ease",
-          }}>
-            {/* Logo mark */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-              <svg width="32" height="36" viewBox="0 0 32 36" fill="none">
-                <path
-                  d="M16 1L31 6.5V18C31 27 23 33.5 16 35C9 33.5 1 27 1 18V6.5L16 1z"
-                  fill="rgba(34,211,238,0.1)"
-                  stroke="rgba(34,211,238,0.6)"
-                  strokeWidth="1"
-                />
-                <path
-                  d="M16 8L24 11.5V18C24 23 20 27 16 28C12 27 8 23 8 18V11.5L16 8z"
-                  fill="rgba(34,211,238,0.06)"
-                  stroke="rgba(34,211,238,0.35)"
-                  strokeWidth="0.8"
-                />
-                <circle cx="16" cy="18" r="3.5" fill="rgba(34,211,238,0.85)" />
-              </svg>
-              <div>
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10, letterSpacing: "0.2em",
-                  color: "#22d3ee",
-                }}>
-                  PHANTOM
-                </div>
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10, letterSpacing: "0.2em",
-                  color: "rgba(255,255,255,0.55)",
-                  marginTop: -2,
-                }}>
-                  SHIELD
-                </div>
-              </div>
-            </div>
-
-            <p style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 400, fontSize: "0.875rem",
-              lineHeight: 1.75, letterSpacing: "-0.005em",
-              color: "rgba(255,255,255,0.32)",
-              margin: "0 0 32px",
-              maxWidth: 280,
-            }}>
-              Active deception framework for post-authentication threat isolation.
-              Built to sustain a parallel phantom reality indefinitely.
-            </p>
-
-            {/* Build info */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 36 }}>
-              {[
-                ["Version",   "v1.0 · Production"],
-                ["Stack",     "FastAPI · Redis · PostgreSQL · MongoDB"],
-                ["Frontend",  "React · Vite"],
-                ["License",   "MIT · Open Source"],
-              ].map(([k, v], i) => (
-                <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                  <span style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 8, letterSpacing: "0.14em",
-                    color: "rgba(255,255,255,0.22)",
-                    textTransform: "uppercase",
-                    minWidth: 64, flexShrink: 0,
-                  }}>
-                    {k}
-                  </span>
-                  <span style={{
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontWeight: 500, fontSize: "0.78rem",
-                    color: "rgba(255,255,255,0.42)",
-                    letterSpacing: "-0.005em",
-                  }}>
-                    {v}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Socials */}
-            <div style={{ display: "flex", gap: 8 }}>
-              {[
-                { label: "GH",  href: "#" },
-                { label: "TW",  href: "#" },
-                { label: "DC",  href: "#" },
-                { label: "LI",  href: "#" },
-              ].map((s, i) => (
-                <Social key={i} {...s} live={fV} delay={i * 60} />
-              ))}
-            </div>
-          </div>
-
-          {/* Nav columns */}
-          {nav.map((col, ci) => (
-            <div
-              key={ci}
-              style={{
-                padding: "0 0 64px 48px",
-                borderRight: ci < nav.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                opacity: fV ? 1 : 0,
-                transform: fV ? "none" : "translateY(16px)",
-                transition: `all 0.7s ease ${ci * 80 + 100}ms`,
-              }}
-            >
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8, letterSpacing: "0.22em",
-                color: "rgba(34,211,238,0.4)",
-                textTransform: "uppercase",
-                marginBottom: 20,
-                paddingBottom: 14,
-                borderBottom: "1px solid rgba(255,255,255,0.05)",
-              }}>
-                {col.heading}
-              </div>
-              {col.links.map((link, li) => (
-                <FootLink
-                  key={li}
-                  label={link.label}
-                  tag={link.tag}
-                  live={fV}
-                  delay={ci * 80 + li * 55 + 200}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-
-        {/* ══ BOTTOM BAR ═══════════════════════════════════ */}
-        <div style={{
-          maxWidth: "86rem", margin: "0 auto",
-          padding: "24px 2.5rem",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          display: "flex", alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap", gap: 16,
-          opacity: fV ? 1 : 0,
-          transition: "opacity 0.7s ease 0.5s",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <span style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8, letterSpacing: "0.14em",
-              color: "rgba(255,255,255,0.2)",
-            }}>
-              © {year} PhantomShield · REF: PS-v1
-            </span>
-            <span style={{ color: "rgba(255,255,255,0.08)", fontSize: 10 }}>·</span>
-            <span style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 8, letterSpacing: "0.14em",
-              color: "rgba(255,255,255,0.15)",
-            }}>
-              MIT License
-            </span>
-          </div>
-
-          {/* Architecture principles */}
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            {[
-              "Auth ≠ Trust",
-              "Risk Advisory Only",
-              "One-Way Escalation",
-              "Zero DB Crossover",
-            ].map((p, i) => (
-              <span key={i} style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 7, letterSpacing: "0.15em",
-                color: "rgba(255,255,255,0.18)",
-                textTransform: "uppercase",
-              }}>
-                {p}
+        {/* ── TICKER ── */}
+        <div className="border-b overflow-hidden" style={{ borderColor: "rgba(34,211,238,0.07)" }}>
+          <motion.div
+            className="flex whitespace-nowrap py-2"
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          >
+            {Array(6).fill(
+              "AUTH ≠ TRUST · SESSION IS SOURCE OF TRUTH · RISK ENGINE IS ADVISORY · POLICY ENGINE OWNS ROUTING · ONE-WAY ESCALATION · ZERO DB CROSSOVER · 100% FORENSIC COVERAGE · CANARY TRAPS ARMED · "
+            ).map((t, i) => (
+              <span key={i} className="font-['JetBrains_Mono'] mr-16"
+                style={{ fontSize: 8, letterSpacing: "0.22em", color: "rgba(34,211,238,0.22)" }}>
+                {t}
               </span>
             ))}
-          </div>
+          </motion.div>
+        </div>
 
-          {/* Live indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ position: "relative", width: 6, height: 6 }}>
-              <div style={{
-                position: "absolute", inset: 0, borderRadius: "50%",
-                background: "#22d3ee", opacity: 0.25,
-                animation: "ripple 2.5s ease-out infinite",
-              }} />
-              <div style={{ position: "absolute", inset: "1.5px", borderRadius: "50%", background: "#22d3ee" }} />
+        {/* ── MAIN GRID ── */}
+        <div className="max-w-[88rem] mx-auto px-6 sm:px-10 pt-16 pb-14">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr_1fr_1fr_1fr] gap-12 lg:gap-8">
+
+            {/* ── BRAND + NEWSLETTER ── */}
+            <div>
+              {/* Logo */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.6 }}
+                className="flex items-center gap-3 mb-6"
+              >
+                <svg width="30" height="34" viewBox="0 0 30 34" fill="none">
+                  <path d="M15 1L29 6V17C29 25.5 22 31.5 15 33C8 31.5 1 25.5 1 17V6L15 1z"
+                    fill="rgba(34,211,238,0.1)" stroke="rgba(34,211,238,0.6)" strokeWidth="1"/>
+                  <path d="M15 7.5L22 10.5V17C22 21.5 18.5 25 15 26C11.5 25 8 21.5 8 17V10.5L15 7.5z"
+                    fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.3)" strokeWidth="0.8"/>
+                  <circle cx="15" cy="17" r="3.5" fill="rgba(34,211,238,0.9)"/>
+                </svg>
+                <div>
+                  <div className="font-['JetBrains_Mono'] text-[10px] tracking-[0.2em] text-cyan-400">PHANTOM</div>
+                  <div className="font-['JetBrains_Mono'] text-[10px] tracking-[0.2em] text-white/45 -mt-0.5">SHIELD</div>
+                </div>
+              </motion.div>
+
+              {/* Tagline */}
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.6, delay: 0.08 }}
+                className="font-['Space_Grotesk'] font-normal leading-[1.7] text-white/32 mb-8"
+                style={{ fontSize: 13, letterSpacing: "-0.005em", maxWidth: 280 }}
+              >
+                Active deception framework for post-authentication threat isolation.
+                Every intrusion attempt becomes an intelligence asset.
+              </motion.p>
+
+              {/* Build info */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={inView ? { opacity: 1 } : {}}
+                transition={{ duration: 0.6, delay: 0.12 }}
+                className="flex flex-col gap-2 mb-8"
+              >
+                {[
+                  ["Version",   "v1.0 · Production"],
+                  ["Stack",     "FastAPI · Redis · Postgres · Mongo"],
+                  ["License",   "MIT · Open Source"],
+                  ["Ref",       "PS-v1 · PhantomShield"],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-baseline gap-2.5">
+                    <span className="font-['JetBrains_Mono']"
+                      style={{ fontSize: 8, letterSpacing: "0.18em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", minWidth: 48 }}>
+                      {k}
+                    </span>
+                    <span className="font-['JetBrains_Mono']"
+                      style={{ fontSize: 9, letterSpacing: "0.06em", color: "rgba(255,255,255,0.38)" }}>
+                      {v}
+                    </span>
+                  </div>
+                ))}
+              </motion.div>
+
+              {/* Social icons */}
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: 0.18 }}
+                className="flex gap-2 mb-10"
+              >
+                {[
+                  { Icon: Github,   label: "GitHub",   color: "#22d3ee",  href: "#" },
+                  { Icon: Twitter,  label: "Twitter",  color: "#22d3ee",  href: "#" },
+                  { Icon: Linkedin, label: "LinkedIn", color: "#22d3ee",  href: "#" },
+                  { Icon: Globe,    label: "Website",  color: "#a78bfa",  href: "#" },
+                ].map((s, i) => (
+                  <SocialBtn key={i} {...s} delay={0.2 + i * 0.05} inView={inView} />
+                ))}
+              </motion.div>
+
+              {/* Newsletter */}
+              <NewsletterInput inView={inView} />
             </div>
-            <span style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 7, letterSpacing: "0.18em",
-              color: "rgba(34,211,238,0.4)",
-              textTransform: "uppercase",
-            }}>
-              System Online
+
+            {/* ── NAV COLUMNS ── */}
+            {NAV.map((col, ci) => (
+              <div key={ci}>
+                {/* Column header — Space Grotesk */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={inView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.5, delay: 0.1 + ci * 0.05 }}
+                  className="font-['Space_Grotesk'] font-bold uppercase tracking-widest mb-5 pb-4 border-b"
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: "0.22em",
+                    color: "rgba(255,255,255,0.5)",
+                    borderColor: "rgba(255,255,255,0.06)",
+                  }}
+                >
+                  {col.heading}
+                </motion.div>
+
+                {/* Links */}
+                <div className="flex flex-col gap-4">
+                  {col.links.map((link, li) => (
+                    <FootLink
+                      key={li}
+                      label={link.label}
+                      href={link.href}
+                      inView={inView}
+                      delay={0.15 + ci * 0.05 + li * 0.035}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── STATUS STRIP ── */}
+        <div className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-8">
+          <div className="mb-2">
+            <span className="font-['JetBrains_Mono']"
+              style={{ fontSize: 8, letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>
+              System Status
             </span>
           </div>
+          <StatusStrip inView={inView} />
+        </div>
+
+        {/* ── DIVIDER ── */}
+        <div className="max-w-[88rem] mx-auto px-6 sm:px-10">
+          <div className="h-px" style={{ background: "rgba(255,255,255,0.06)" }} />
+        </div>
+
+        {/* ── BOTTOM BAR ── */}
+        <div className="max-w-[88rem] mx-auto px-6 sm:px-10 py-5">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={inView ? { opacity: 1 } : {}}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="flex flex-wrap items-center justify-between gap-4"
+          >
+            {/* Left — copyright */}
+            <div className="flex items-center gap-5">
+              <span className="font-['JetBrains_Mono']"
+                style={{ fontSize: 9, letterSpacing: "0.12em", color: "rgba(255,255,255,0.2)" }}>
+                © {year} PhantomShield
+              </span>
+              <span style={{ color: "rgba(255,255,255,0.08)", fontSize: 12 }}>·</span>
+              <span className="font-['JetBrains_Mono']"
+                style={{ fontSize: 9, letterSpacing: "0.12em", color: "rgba(255,255,255,0.14)" }}>
+                MIT License
+              </span>
+              <span style={{ color: "rgba(255,255,255,0.08)", fontSize: 12 }}>·</span>
+              <span className="font-['JetBrains_Mono']"
+                style={{ fontSize: 9, letterSpacing: "0.12em", color: "rgba(255,255,255,0.14)" }}>
+                REF: PS-v1
+              </span>
+            </div>
+
+            {/* Centre — principles */}
+            <div className="hidden md:flex items-center gap-5">
+              {["Auth ≠ Trust", "One-Way Escalation", "Zero Crossover", "100% Forensics"].map((p, i) => (
+                <span key={i} className="font-['JetBrains_Mono']"
+                  style={{ fontSize: 7.5, letterSpacing: "0.16em", color: "rgba(255,255,255,0.16)", textTransform: "uppercase" }}>
+                  {p}
+                </span>
+              ))}
+            </div>
+
+            {/* Right — system time + location */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <MapPin size={9} color="rgba(34,211,238,0.4)" />
+                <span className="font-['JetBrains_Mono']"
+                  style={{ fontSize: 9, letterSpacing: "0.14em", color: "rgba(34,211,238,0.4)" }}>
+                  SERVER: GLOBAL
+                </span>
+              </div>
+              <div className="w-px h-3" style={{ background: "rgba(255,255,255,0.1)" }} />
+              <div className="flex items-center gap-1.5">
+                <Clock size={9} color="rgba(34,211,238,0.4)" />
+                <SystemClock />
+              </div>
+              <div className="w-px h-3" style={{ background: "rgba(255,255,255,0.1)" }} />
+              {/* Live dot */}
+              <div className="flex items-center gap-1.5">
+                <div className="relative w-[7px] h-[7px]">
+                  <span className="absolute inset-0 rounded-full bg-emerald-400 opacity-25"
+                    style={{ animation: "liveRipple 2.5s ease-out infinite" }} />
+                  <span className="absolute inset-[1.5px] rounded-full bg-emerald-400" />
+                </div>
+                <span className="font-['JetBrains_Mono']"
+                  style={{ fontSize: 8, letterSpacing: "0.16em", color: "rgba(52,211,153,0.5)", textTransform: "uppercase" }}>
+                  Online
+                </span>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
       </footer>
