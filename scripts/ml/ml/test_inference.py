@@ -1,16 +1,26 @@
 import joblib
 import numpy as np
 import os
+import json
 
 def test_sample_risk():
     model_path = "models/phantomshield_lr.pkl"
+    schema_path = "scripts/ml/feature_schema.json"
+
     if not os.path.exists(model_path):
         print("Error: Train the model first!")
         return
 
+    if not os.path.exists(schema_path):
+        print("Error: feature_schema.json not found!")
+        return
+
     model = joblib.load(model_path)
 
-    # A sample that looks like an attacker (High requests, low entropy, low variance)
+    with open(schema_path, "r") as f:
+        feature_order = json.load(f)["features"]
+
+    # A sample that looks like an attacker
     suspicious_sample = {
         "avg_requests_per_min": 150,
         "request_interval_variance": 0.02,
@@ -29,11 +39,17 @@ def test_sample_risk():
         "endpoint_scan_score": 0.8
     }
 
-    arr = np.array(list(suspicious_sample.values())).reshape(1, -1)
+    ordered_features = [
+        float(suspicious_sample.get(feature, 0))
+        for feature in feature_order
+    ]
+
+    arr = np.array(ordered_features).reshape(1, -1)
+
     prob = model.predict_proba(arr)[0][1]
     delta = (prob - 0.5) * 0.6
 
-    print(f"--- Inference Test ---")
+    print("--- Inference Test ---")
     print(f"Attacker Probability: {prob:.4f}")
     print(f"Risk Delta: {delta:.4f}")
 
