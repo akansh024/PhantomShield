@@ -1,0 +1,19 @@
+{
+  "features": [
+    "avg_requests_per_min",
+    "request_interval_variance",
+    "session_duration_sec",
+    "pages_visited_count",
+    "api_calls_count",
+    "ui_to_api_ratio",
+    "sensitive_endpoint_hits",
+    "api_404_rate",
+    "api_403_rate",
+    "rapid_navigation_score",
+    "repeated_endpoint_hits",
+    "canary_trigger_count",
+    "abnormal_request_burst",
+    "session_action_entropy",
+    "endpoint_scan_score"
+  ]
+}

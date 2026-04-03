@@ -1,5 +1,9 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.auth.auth_routes import router as auth_router
+from app.api.decoy.routes import router as decoy_router
+from app.db.mongo.repo import close_mongo_connection
 from app.tests.test import router as test_router
 from app.api.decoy.routes import router as decoy_router
 
@@ -16,6 +20,7 @@ app.add_middleware(RequestLoggerMiddleware)
 
 # Register routers
 app.include_router(auth_router)
+app.include_router(decoy_router)
 app.include_router(test_router)
 app.include_router(decoy_router)
 
