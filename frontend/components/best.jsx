@@ -471,29 +471,29 @@ function AuditCard({ inView }) {
   );
 }
 
-/* ─── TESTIMONIAL STRIP ───────────────────────────────────── */
-const TESTIMONIALS = [
+/* ─── TECHNICAL WORKFLOW STRIP ───────────────────────────────────── */
+const WORKFLOW_STEPS = [
   {
-    quote: "The one-way escalation guarantee is the most architecturally sound security decision I've seen in an open-source project.",
-    name: "Principal Security Engineer",
-    org: "Financial Infrastructure",
+    step: "01",
+    title: "Passive Observation",
+    desc: "No inline blocking. PhantomShield attaches to your application layer asynchronously, evaluating API sequences and behavior heuristics with zero added latency.",
     color: "#22d3ee",
   },
   {
-    quote: "Most honeypot systems alert. PhantomShield turns every intrusion into compounding intelligence. Categorically different.",
-    name: "Lead Threat Analyst",
-    org: "Critical Systems",
-    color: "#a78bfa",
+    step: "02",
+    title: "One-Way Escalation",
+    desc: "When risk exceeds the threshold, trust is permanently revoked. The active session is transparently re-bound to an identical, isolated decoy environment.",
+    color: "#ef4444",
   },
   {
-    quote: "The separation of risk advisory from routing authority solves a problem every security tool I've used gets wrong.",
-    name: "Senior Architect",
-    org: "Cloud Security Platform",
-    color: "#f59e0b",
+    step: "03",
+    title: "Forensic Exploitation",
+    desc: "Inside the decoy, all payloads are safely executed and captured. Attackers trigger Canary traps, generating high-fidelity threat signatures without risking production data.",
+    color: "#10b981",
   },
 ];
 
-function TestimonialCard({ t, index, inView }) {
+function WorkflowCard({ stepData, index, inView }) {
   const [hov, setHov] = useState(false);
   return (
     <motion.div
@@ -506,9 +506,9 @@ function TestimonialCard({ t, index, inView }) {
       style={{
         background: hov ? `rgba(255,255,255,0.032)` : "rgba(255,255,255,0.024)",
         backdropFilter: "blur(18px)",
-        border: `1px solid ${hov ? `${t.color}28` : "rgba(255,255,255,0.07)"}`,
-        boxShadow: hov ? `0 0 28px ${t.color}14, 0 12px 40px rgba(0,0,0,0.4)` : "0 8px 28px rgba(0,0,0,0.35)",
-        padding: "28px",
+        border: `1px solid ${hov ? `${stepData.color}28` : "rgba(255,255,255,0.07)"}`,
+        boxShadow: hov ? `0 0 28px ${stepData.color}14, 0 12px 40px rgba(0,0,0,0.4)` : "0 8px 28px rgba(0,0,0,0.35)",
+        padding: "32px 28px",
         transition: "all 0.3s ease",
         cursor: "default",
       }}
@@ -519,44 +519,31 @@ function TestimonialCard({ t, index, inView }) {
       />
 
       {/* Accent top rule on hover */}
-      <div className="absolute top-0 left-6 right-6 h-px transition-all duration-300"
-        style={{ background: hov ? `${t.color}60` : "transparent" }}
+      <div className="absolute top-0 left-0 right-0 h-1 transition-all duration-300"
+        style={{ background: hov ? `${stepData.color}80` : "transparent" }}
       />
 
-      <div className="relative z-10">
-        {/* Open quote */}
-        <div className="font-['Space_Grotesk'] font-bold mb-4 leading-none select-none"
-          style={{ fontSize: 48, color: `${t.color}20`, lineHeight: 1 }}>
-          "
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Step Number */}
+        <div className="font-['Space_Grotesk'] font-bold mb-6 leading-none select-none transition-colors duration-300"
+          style={{ fontSize: 32, color: hov ? stepData.color : `${stepData.color}40`, lineHeight: 1 }}>
+          {stepData.step}.
+        </div>
+
+        <div className="font-['Space_Grotesk'] font-bold text-[18px] text-white mb-4 tracking-tight">
+          {stepData.title}
         </div>
 
         <p className="font-['Space_Grotesk'] font-normal text-[13.5px] leading-[1.72]
-          text-white/42 tracking-[-0.005em] mb-6">
-          {t.quote}
+          text-white/50 tracking-[-0.005em] mb-4 flex-grow">
+          {stepData.desc}
         </p>
 
-        <div className="flex items-center gap-3 pt-4 border-t border-white/[0.06]">
-          {/* Avatar placeholder */}
-          <div
-            className="w-8 h-8 flex items-center justify-center border"
-            style={{
-              background: `${t.color}12`,
-              borderColor: `${t.color}28`,
-            }}
-          >
-            <span className="font-['Space_Grotesk'] font-bold text-[10px]" style={{ color: t.color }}>
-              {t.name[0]}
-            </span>
-          </div>
-          <div>
-            <div className="font-['Space_Grotesk'] font-semibold text-[12px] text-white/55 tracking-tight">
-              {t.name}
-            </div>
-            <div className="font-['JetBrains_Mono'] text-[8px] tracking-[0.14em]"
-              style={{ color: `${t.color}55` }}>
-              {t.org}
-            </div>
-          </div>
+        <div className="pt-5 border-t border-white/[0.06] mt-auto">
+           <div className="font-['JetBrains_Mono'] text-[8px] tracking-[0.14em] uppercase"
+                style={{ color: `${stepData.color}60` }}>
+             PHANTOM ENGINE // STAGE {stepData.step}
+           </div>
         </div>
       </div>
     </motion.div>
@@ -654,11 +641,11 @@ export default function PerformanceAudit() {
             </div>
             <h2
               className="font-['Space_Grotesk'] font-bold uppercase tracking-tighter leading-[0.9]"
-              style={{ fontSize: "clamp(3rem,7.5vw,7.5rem)", color: "#f1f5f9" }}
+              style={{ fontSize: "clamp(3.5rem,8vw,8.5rem)", color: "#f1f5f9" }}
             >
               PERFORMANCE
               <span style={{
-                WebkitTextStroke: "1.5px rgba(34,211,238,0.65)",
+                WebkitTextStroke: "1.5px rgba(0,255,170,0.8)",
                 WebkitTextFillColor: "transparent",
                 marginLeft: "0.15em",
               }}>
@@ -691,23 +678,9 @@ export default function PerformanceAudit() {
           </div>
         </div>
 
-        {/* ── LOGO MARQUEE ── */}
-        <div className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-16">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.22em] text-white/22 uppercase">
-              Built With
-            </span>
-            <div className="flex-1 h-px border-t border-dashed border-white/[0.07]" />
-          </div>
-          <div
-            className="border-t border-b py-1"
-            style={{ borderColor: "rgba(34,211,238,0.07)", background: "rgba(34,211,238,0.018)" }}
-          >
-            <LogoMarquee />
-          </div>
-        </div>
 
-        {/* ── TESTIMONIALS ── */}
+
+        {/* ── WORKFLOW TRINITY ── */}
         <div ref={tRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-32">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -716,44 +689,24 @@ export default function PerformanceAudit() {
             className="flex items-center gap-3 mb-8"
           >
             <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.22em] text-white/22 uppercase">
-              Field Assessment
+              System Architecture Flow
             </span>
             <div className="flex-1 h-px"
               style={{ background: "linear-gradient(90deg, rgba(34,211,238,0.12), transparent)" }}
             />
             <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.2em] text-white/18 uppercase">
-              3 verified
+              Automated Lifecycle
             </span>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px]">
-            {TESTIMONIALS.map((t, i) => (
-              <TestimonialCard key={i} t={t} index={i} inView={tV} />
+            {WORKFLOW_STEPS.map((step, i) => (
+              <WorkflowCard key={i} stepData={step} index={i} inView={tV} />
             ))}
           </div>
         </div>
 
-        {/* ── BOTTOM DIVIDER ── */}
-        <div
-          className="border-t border-b overflow-hidden"
-          style={{ borderColor: "rgba(34,211,238,0.07)", background: "rgba(34,211,238,0.018)" }}
-        >
-          <motion.div
-            className="flex whitespace-nowrap py-2"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          >
-            {Array(6).fill(
-              "UPTIME · 99.9% · LATENCY · <2ms · FORENSICS · 100% · CROSSOVERS · 0 · CANARY · 38+ · LAYERS · 7 · SIGNALS · 12 · REVERSALS · 0 · "
-            ).map((t, i) => (
-              <span key={i}
-                className="font-['JetBrains_Mono'] mr-12"
-                style={{ fontSize: 8, letterSpacing: "0.22em", color: "rgba(34,211,238,0.22)" }}>
-                {t}
-              </span>
-            ))}
-          </motion.div>
-        </div>
+
 
       </section>
     </>

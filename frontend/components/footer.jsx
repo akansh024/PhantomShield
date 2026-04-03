@@ -379,23 +379,7 @@ export default function Footer() {
           }}
         />
 
-        {/* ── TICKER ── */}
-        <div className="border-b overflow-hidden" style={{ borderColor: "rgba(34,211,238,0.07)" }}>
-          <motion.div
-            className="flex whitespace-nowrap py-2"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          >
-            {Array(6).fill(
-              "AUTH ≠ TRUST · SESSION IS SOURCE OF TRUTH · RISK ENGINE IS ADVISORY · POLICY ENGINE OWNS ROUTING · ONE-WAY ESCALATION · ZERO DB CROSSOVER · 100% FORENSIC COVERAGE · CANARY TRAPS ARMED · "
-            ).map((t, i) => (
-              <span key={i} className="font-['JetBrains_Mono'] mr-16"
-                style={{ fontSize: 8, letterSpacing: "0.22em", color: "rgba(34,211,238,0.22)" }}>
-                {t}
-              </span>
-            ))}
-          </motion.div>
-        </div>
+
 
         {/* ── MAIN GRID ── */}
         <div className="max-w-[88rem] mx-auto px-6 sm:px-10 pt-16 pb-14">

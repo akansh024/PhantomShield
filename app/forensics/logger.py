@@ -17,7 +17,7 @@ class ForensicLogger:
             "method": method,
             "payload": payload,
             "status_code": status_code,
-            "timestamp": datetime.datetime.utcnow()
+            "timestamp": datetime.datetime.now()
         }
 
         await self.db.attack_events.insert_one(event)
