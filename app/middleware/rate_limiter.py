@@ -1,5 +1,7 @@
 import time
-from fastapi import Request, HTTPException
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 # store request timestamps per IP
 request_log = {}
@@ -9,25 +11,26 @@ MAX_REQUESTS = 8
 WINDOW_SECONDS = 60
 
 
-async def rate_limiter(request: Request, call_next):
-    ip = request.client.host
-    now = time.time()
+class RateLimiterMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        ip = request.client.host if request.client else "unknown"
+        now = time.time()
 
-    if ip not in request_log:
-        request_log[ip] = []
+        if ip not in request_log:
+            request_log[ip] = []
 
-    # keep only requests inside time window
-    request_log[ip] = [
-        t for t in request_log[ip] if now - t < WINDOW_SECONDS
-    ]
+        # keep only requests inside time window
+        request_log[ip] = [
+            t for t in request_log[ip] if now - t < WINDOW_SECONDS
+        ]
 
-    if len(request_log[ip]) >= MAX_REQUESTS:
-        raise HTTPException(
-            status_code=429,
-            detail="Too many requests. Try again later."
-        )
+        if len(request_log[ip]) >= MAX_REQUESTS:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Try again later."},
+            )
 
-    request_log[ip].append(now)
+        request_log[ip].append(now)
 
-    response = await call_next(request)
-    return response
+        response = await call_next(request)
+        return response
