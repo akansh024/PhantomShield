@@ -7,10 +7,10 @@ const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Sessions', path: '/sessions', icon: <List size={20} /> },
-    { name: 'Forensics', path: '/forensics', icon: <Activity size={20} /> },
-    { name: 'Settings', path: '/settings', icon: <Settings size={20} /> }
+    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, end: true },
+    { name: 'Sessions', path: '/dashboard/sessions', icon: <List size={20} /> },
+    { name: 'Forensics', path: '/dashboard/forensics', icon: <Activity size={20} /> },
+    { name: 'Settings', path: '/dashboard/settings', icon: <Settings size={20} /> }
   ];
 
   return (
@@ -29,6 +29,7 @@ const Sidebar = () => {
           <NavLink
             key={item.name}
             to={item.path}
+            end={item.end}
             className={({ isActive }) =>
               `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                 isActive

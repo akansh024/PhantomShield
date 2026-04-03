@@ -1,8 +1,9 @@
 export const fetchSessionMe = async () => {
+  const customName = localStorage.getItem('admin_name') || "Master Admin";
   return {
     user_id: "sec_ops_01",
     role: "Analyst",
-    name: "Alex V.",
+    name: customName,
   };
 };
 

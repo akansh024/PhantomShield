@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useAnimation, useInView, animate } from "framer-motion";
+import { Link } from 'react-router-dom';
+import { motion, useAnimation, useInView, animate, useScroll, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck, Activity, ArrowRight, FileText,
   Zap, Lock, Eye, AlertTriangle, CheckCircle2,
-  Terminal, Wifi, Server, Globe, ChevronRight,
+  Terminal, Wifi, Server, Globe, ChevronRight, User, LogOut, ChevronDown
 } from "lucide-react";
 
 
@@ -58,14 +59,33 @@ function Counter({ to, suffix = "", duration = 2 }) {
   return <span ref={ref}>{val}{suffix}</span>;
 }
 
-/* ─── NAV ────────────────────────────────────────────────── */
-function Navbar() {
+function Navbar({ onAdminTrigger }) {
   const [scrolled, setScrolled] = useState(false);
+  const [userSession, setUserSession] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", fn);
+    
+    // Check initial session
+    const token = localStorage.getItem('phantom_token');
+    const userName = localStorage.getItem('user_name');
+    
+    if (token) {
+      setUserSession(userName || 'Standard User');
+    }
+
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('phantom_token');
+    localStorage.removeItem('user_name');
+    // Admin clearance remains untouched by standard user logout
+    setUserSession(null);
+    setMenuOpen(false);
+  };
 
   return (
     <motion.nav
@@ -98,29 +118,56 @@ function Navbar() {
 
         {/* Links */}
         <div className="hidden md:flex items-center gap-8">
-          {["Architecture", "How It Works", "Capabilities", "Docs"].map((item) => (
+          {["Architecture", "Capabilities", "Docs"].map((item) => (
             <a key={item} href="#"
-              className="font-['JetBrains_Mono'] text-[9px] tracking-[0.22em] text-white/35 hover:text-white/70 uppercase transition-colors duration-200">
+              className="font-['JetBrains_Mono'] text-[12px] tracking-[0.1em] text-white/50 hover:text-white uppercase transition-colors duration-200">
               {item}
             </a>
           ))}
         </div>
 
         {/* CTA */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-[7px] w-[7px]">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40"/>
-              <span className="relative inline-flex rounded-full h-[7px] w-[7px] bg-emerald-400"/>
-            </span>
-            <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.2em] text-emerald-400/70 uppercase hidden sm:block">
-              System Online
-            </span>
-          </div>
-          <button className="hidden sm:flex items-center gap-2 font-['Space_Grotesk'] font-semibold text-[11px] tracking-tight
-            px-4 py-2.5 bg-cyan-400 text-[#030a10] uppercase hover:shadow-[0_0_20px_rgba(34,211,238,0.35)]
-            hover:-translate-y-px transition-all duration-200 cursor-pointer">
-            Deploy
+        <div className="flex items-center gap-4">
+          {!userSession ? (
+            <Link to="/signup" className="hidden sm:flex items-center gap-2 font-['Space_Grotesk'] font-bold text-[12px] tracking-tight text-white/70 hover:text-white transition-colors duration-200">
+              Sign Up
+            </Link>
+          ) : (
+            <div className="relative">
+              <button 
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="hidden sm:flex flex-row items-center gap-2 font-['Space_Grotesk'] font-medium text-[12px] tracking-tight bg-white/5 border border-white/10 px-3 py-1.5 rounded-sm text-white/90 hover:bg-white/10 transition-colors"
+              >
+                <User size={14} className="text-[#00ffaa]" />
+                {userSession}
+                <ChevronDown size={14} className={`transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="absolute right-0 mt-3 w-40 bg-[#13141a] border border-white/10 rounded-sm shadow-xl p-1 z-50 overflow-hidden"
+                  >
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-['Space_Grotesk'] text-white/60 hover:text-red-400 hover:bg-white/5 rounded-sm transition-colors text-left"
+                    >
+                      <LogOut size={14} />
+                      Terminate Auth
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          <button onClick={onAdminTrigger} className="hidden sm:flex items-center gap-2 font-['Space_Grotesk'] font-bold text-[12px] tracking-tight
+            px-5 py-2.5 bg-[#00ffaa] text-[#13141a] uppercase rounded-sm hover:shadow-[0_0_20px_rgba(0,255,170,0.35)]
+            hover:-translate-y-px transition-all duration-200 cursor-pointer border-0">
+            Dashboard
           </button>
         </div>
       </div>
@@ -295,10 +342,10 @@ function TerminalCard() {
 
       {/* Floating info chips */}
       <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2, duration: 0.6 }}
-        className="absolute -right-4 top-20 flex flex-col gap-2"
+        className="absolute -top-12 right-0 flex flex-row gap-3 z-20"
       >
         {[
           { icon: <Lock size={10}/>, label: "Real DB Isolated", color: "text-emerald-400", border: "border-emerald-400/20" },
@@ -311,8 +358,8 @@ function TerminalCard() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 1.2 + i * 0.12 }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full
-              backdrop-blur-xl bg-white/[0.04] border ${chip.border}
-              shadow-[0_4px_16px_rgba(0,0,0,0.3)]`}
+              backdrop-blur-xl bg-[#030a10]/80 border ${chip.border}
+              shadow-[0_4px_16px_rgba(0,0,0,0.5)]`}
           >
             <span className={chip.color}>{chip.icon}</span>
             <span className={`font-['JetBrains_Mono'] text-[8px] tracking-[0.12em] ${chip.color}`}>
@@ -326,14 +373,14 @@ function TerminalCard() {
 }
 
 /* ─── HERO SECTION ───────────────────────────────────────── */
-export default function HeroSection() {
+export default function HeroSection({ onAdminTrigger }) {
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
       `}</style>
 
-      <Navbar />
+      <Navbar onAdminTrigger={onAdminTrigger} />
 
       <section className="relative min-h-screen flex items-center overflow-hidden"
         style={{ background: "linear-gradient(160deg, #030a10 0%, #020810 60%, #040c14 100%)" }}>
@@ -342,8 +389,8 @@ export default function HeroSection() {
 
         {/* ── MAIN CONTENT ── */}
         <div className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 w-full pt-[68px]">
-          <div className="grid lg:grid-cols-[1fr_520px] xl:grid-cols-[1fr_560px] gap-16 xl:gap-24
-            items-center min-h-[calc(100vh-68px)] py-20">
+          <div className="grid lg:grid-cols-2 gap-12 xl:gap-16
+            items-center min-h-[calc(100vh-68px)] py-12 lg:py-20">
 
             {/* ── LEFT — COPY ── */}
             <div className="flex flex-col gap-0">
@@ -372,20 +419,20 @@ export default function HeroSection() {
               </motion.div>
 
               {/* H1 */}
-              <div className="overflow-hidden mb-4">
+              <div className="mb-4">
                 <motion.h1
                   initial={{ y: 80, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.85, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                   className="font-['Space_Grotesk'] font-bold leading-[0.88] tracking-tighter uppercase"
-                  style={{ fontSize: "clamp(3.4rem, 8vw, 7.5rem)" }}
+                  style={{ fontSize: "clamp(3rem, 6.5vw, 6rem)" }}
                 >
                   <span className="text-white block">Redefining</span>
                   <span className="text-white block">Digital</span>
                   <span
                     className="block"
                     style={{
-                      background: "linear-gradient(90deg, #22d3ee 0%, #06b6d4 50%, #0891b2 100%)",
+                      background: "linear-gradient(90deg, #00ffaa 0%, #06b6d4 100%)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                     }}
@@ -395,23 +442,14 @@ export default function HeroSection() {
                 </motion.h1>
               </div>
 
-              {/* Comment line */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.45 }}
-                className="font-['JetBrains_Mono'] text-[10px] tracking-[0.1em] text-cyan-400/30 mb-8"
-              >
-                // The attacker believes they're inside. They are. It's not the real system.
-              </motion.div>
+
 
               {/* Description */}
               <motion.p
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="font-['Space_Grotesk'] font-normal text-[1rem] leading-[1.78]
-                  tracking-[-0.005em] text-white/40 max-w-[480px] mb-10"
+                className="font-['Space_Grotesk'] font-medium text-lg leading-relaxed text-white/60 max-w-[500px] mb-10"
               >
                 PhantomShield routes confirmed threats into a{" "}
                 <span className="text-white/70 font-medium">cryptographically isolated decoy system</span>
@@ -427,16 +465,17 @@ export default function HeroSection() {
                 className="flex flex-wrap items-center gap-3 mb-14"
               >
                 {/* Primary */}
-                <motion.button
-                  whileHover={{ y: -2, boxShadow: "0 0 32px rgba(34,211,238,0.4)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2.5 font-['Space_Grotesk'] font-bold
-                    text-[13px] tracking-tight uppercase px-7 py-[14px]
-                    bg-cyan-400 text-[#030a10] transition-all duration-200 cursor-pointer"
-                >
-                  Deploy PhantomShield
-                  <ArrowRight size={14} strokeWidth={2.5}/>
-                </motion.button>
+                  <motion.button
+                    onClick={onAdminTrigger}
+                    whileHover={{ y: -2, boxShadow: "0 0 32px rgba(0,255,170,0.4)" }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-2.5 font-['Space_Grotesk'] font-bold
+                      text-[14px] tracking-tight uppercase px-8 py-[16px] rounded-md
+                      bg-[#00ffaa] text-[#13141a] transition-all duration-200 cursor-pointer border-0"
+                  >
+                    Enter Dashboard
+                    <ArrowRight size={16} strokeWidth={2.5}/>
+                  </motion.button>
 
                 {/* Secondary ghost */}
                 <motion.button
