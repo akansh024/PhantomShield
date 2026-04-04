@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Clock, ChevronRight, ShoppingBag, MapPin, Truck } from 'lucide-react';
+import { Package, ChevronRight, Truck } from 'lucide-react';
 import { storeApi } from '../../api/storeApi';
 
 const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
@@ -35,7 +35,7 @@ export default function OrdersPage() {
         </div>
 
         {loading ? (
-          <div className="space-y-4">
+          <div className="space-y-4" aria-busy="true">
             {[1,2,3].map(i => <div key={i} className="bg-white/3 rounded-2xl h-32 animate-pulse" />)}
           </div>
         ) : orders.length === 0 ? (

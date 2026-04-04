@@ -21,16 +21,20 @@ function CartItemRow({ item, onUpdate, onRemove, loading }) {
           {/* Quantity */}
           <div className="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden">
             <button
+              type="button"
               onClick={() => item.quantity > 1 ? onUpdate(item.product_id, item.quantity - 1) : onRemove(item.product_id)}
               disabled={loading}
+              aria-label={`Decrease quantity of ${item.name}`}
               className="px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-50 transition"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
             <span className="px-4 text-white font-bold text-sm">{item.quantity}</span>
             <button
+              type="button"
               onClick={() => onUpdate(item.product_id, item.quantity + 1)}
               disabled={loading}
+              aria-label={`Increase quantity of ${item.name}`}
               className="px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-50 transition"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -41,6 +45,7 @@ function CartItemRow({ item, onUpdate, onRemove, loading }) {
           <div className="flex items-center gap-4">
             <span className="text-white font-semibold">{fmt(item.subtotal)}</span>
             <button
+              type="button"
               onClick={() => onRemove(item.product_id)}
               disabled={loading}
               className="text-gray-600 hover:text-red-400 transition disabled:opacity-50"
@@ -117,6 +122,7 @@ export default function CartPage() {
           </div>
           {cart.items.length > 0 && (
             <button
+              type="button"
               onClick={clearCart}
               className="text-sm text-gray-500 hover:text-red-400 transition"
             >

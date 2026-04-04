@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { CheckCircle, XCircle, X } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 
 /**
@@ -14,7 +13,10 @@ export default function ToastNotification() {
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={`fixed top-20 right-4 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border max-w-sm backdrop-blur-sm
+        left-4 sm:left-auto
         animate-[slideInRight_0.3s_ease-out]
         ${isSuccess
           ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-300'

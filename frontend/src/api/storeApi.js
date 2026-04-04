@@ -2,7 +2,7 @@
  * PhantomShield Store – API Client
  *
  * All store requests go through /api/store/*.
- * The browser automatically sends the ps_sid HttpOnly cookie.
+ * The browser automatically sends the session_id HttpOnly cookie.
  * The frontend has NO knowledge of real vs decoy mode.
  */
 
@@ -11,7 +11,7 @@ const BASE = '/api/store';
 async function request(method, path, body = null) {
   const opts = {
     method,
-    credentials: 'include',           // send ps_sid cookie
+    credentials: 'include',           // send session_id cookie
     headers: { 'Content-Type': 'application/json' },
   };
   if (body) opts.body = JSON.stringify(body);

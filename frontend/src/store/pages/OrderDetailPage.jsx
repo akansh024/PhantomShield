@@ -81,7 +81,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Delivery info */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div className="bg-[#111120] border border-white/5 rounded-2xl p-5 flex items-start gap-3">
             <Truck className="w-5 h-5 text-violet-400 mt-0.5 shrink-0" />
             <div>
@@ -149,7 +149,7 @@ export default function OrderDetailPage() {
         </div>
 
         {/* CTAs */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <Link
             to="/shop/orders"
             className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium py-3 rounded-xl transition"

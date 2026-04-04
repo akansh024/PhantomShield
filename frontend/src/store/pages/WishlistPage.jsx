@@ -52,6 +52,7 @@ export default function WishlistPage() {
 
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => addToCart(item.product_id, 1, item.name)}
                       disabled={cartLoading}
                       className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-xl transition-all active:scale-95"
@@ -60,6 +61,7 @@ export default function WishlistPage() {
                       Add to Cart
                     </button>
                     <button
+                      type="button"
                       onClick={() => toggleWishlist(item.product_id, item.name)}
                       disabled={wishlistLoading}
                       className="p-2.5 bg-white/5 hover:bg-red-500/10 hover:text-red-400 text-gray-400 border border-white/10 hover:border-red-500/20 rounded-xl transition-all disabled:opacity-50"

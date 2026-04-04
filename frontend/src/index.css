@@ -18,9 +18,36 @@
     @apply bg-[var(--color-primary-base)] text-[var(--color-text-main)] font-sans antialiased;
     margin: 0;
   }
+
+  /* Strong keyboard-visible focus ring across interactive controls */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #8b5cf6;
+    outline-offset: 2px;
+  }
 }
 
 @layer utilities {
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 1rem;
+    z-index: 60;
+    border-radius: 0.75rem;
+    background: #111120;
+    color: #ffffff;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: top 150ms ease;
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+  }
+
   .glass {
     @apply bg-[var(--color-primary-surface-elevated)] backdrop-blur-md border border-white/5;
   }
@@ -60,5 +87,16 @@
 @keyframes fadeUp {
   from { transform: translateY(24px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
