@@ -26,7 +26,7 @@ from app.policy.rules import ONE_WAY_ESCALATION
 # Decision Model
 # =========================
 
-Route = Literal["real", "decoy"]
+Route = Literal["REAL", "DECOY"]
 
 
 @dataclass(frozen=True)
@@ -52,28 +52,28 @@ def evaluate_policy(
 
     Args:
         risk_score: Current cumulative session risk (0.0 – 1.0)
-        current_route: Current session routing state ("real" or "decoy")
+        current_route: Current session routing state ("REAL" or "DECOY")
 
     Returns:
         PolicyDecision indicating desired route and reason.
     """
 
     # --- Rule 1: One-way escalation lock ---
-    if ONE_WAY_ESCALATION and current_route == "decoy":
+    if ONE_WAY_ESCALATION and current_route == "DECOY":
         return PolicyDecision(
-            route="decoy",
+            route="DECOY",
             reason="one_way_escalation_lock"
         )
 
     # --- Rule 2: High risk triggers decoy ---
     if risk_score >= HIGH_RISK_THRESHOLD:
         return PolicyDecision(
-            route="decoy",
+            route="DECOY",
             reason="risk_above_high_threshold"
         )
 
     # --- Rule 3: All other cases remain real ---
     return PolicyDecision(
-        route="real",
+        route="REAL",
         reason="risk_below_threshold"
     )
