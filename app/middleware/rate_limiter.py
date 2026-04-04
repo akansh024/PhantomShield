@@ -6,8 +6,8 @@ from starlette.responses import JSONResponse
 # store request timestamps per IP
 request_log = {}
 
-# limits
-MAX_REQUESTS = 8
+# limits — raised from 8 to accommodate store frontend parallel requests
+MAX_REQUESTS = 60
 WINDOW_SECONDS = 60
 
 
