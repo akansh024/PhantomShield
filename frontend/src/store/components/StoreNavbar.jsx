@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  ShoppingCart, 
-  Heart, 
-  Search, 
-  Menu, 
-  X, 
-  ShoppingBag, 
-  User, 
-  LogOut, 
-  ChevronDown 
+import {
+  ChevronDown,
+  Heart,
+  LogOut,
+  Menu,
+  Search,
+  ShoppingBag,
+  ShoppingCart,
+  User,
+  X,
 } from 'lucide-react';
-import { useStore } from '../../context/StoreContext';
+
 import { useAuth } from '../../context/AuthContext';
+import { useStore } from '../../context/StoreContext';
 
 export default function StoreNavbar() {
   const { cart, wishlist } = useStore();
@@ -22,6 +23,7 @@ export default function StoreNavbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
+  const profileRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -31,13 +33,47 @@ export default function StoreNavbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/shop/products?q=${encodeURIComponent(query.trim())}`);
-      setSearchOpen(false);
-      setQuery('');
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        setProfileOpen(false);
+        setSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!profileOpen) return undefined;
+    const onClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [profileOpen]);
+
+  useEffect(() => {
+    if (searchOpen || menuOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
     }
+
+    document.body.style.overflow = '';
+    return undefined;
+  }, [searchOpen, menuOpen]);
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    if (!query.trim()) return;
+    navigate(`/shop/products?q=${encodeURIComponent(query.trim())}`);
+    setSearchOpen(false);
+    setQuery('');
   };
 
   const navLinks = [
@@ -52,21 +88,29 @@ export default function StoreNavbar() {
 
   return (
     <>
-      {/* Search overlay */}
       {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-24 px-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search products"
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-24 px-4"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setSearchOpen(false);
+          }}
+        >
           <form onSubmit={handleSearch} className="w-full max-w-2xl">
             <div className="relative">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-violet-400 w-5 h-5" />
               <input
                 autoFocus
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search products, brands, categories…"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search products, brands, categories..."
                 className="w-full pl-14 pr-16 py-5 bg-[#1a1b2e] border border-violet-500/30 rounded-2xl text-white text-lg placeholder:text-gray-500 focus:outline-none focus:border-violet-400"
               />
               <button
                 type="button"
+                aria-label="Close search"
                 onClick={() => setSearchOpen(false)}
                 className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
               >
@@ -78,6 +122,7 @@ export default function StoreNavbar() {
       )}
 
       <nav
+        aria-label="Store navigation"
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
           scrolled
             ? 'bg-[#0d0e1a]/95 backdrop-blur-xl border-b border-white/5 shadow-2xl'
@@ -86,7 +131,6 @@ export default function StoreNavbar() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <Link to="/shop" className="flex items-center gap-2 group">
               <div className="w-8 h-8 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                 <ShoppingBag className="w-4 h-4 text-white" />
@@ -96,29 +140,29 @@ export default function StoreNavbar() {
               </span>
             </Link>
 
-            {/* Desktop nav links */}
-            <div className="hidden lg:flex items-center gap-1">
+            <ul className="hidden lg:flex items-center gap-1" role="list">
               {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive(link.to)
-                      ? 'bg-violet-600/20 text-violet-300'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {link.label}
-                </Link>
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive(link.to)
+                        ? 'bg-violet-600/20 text-violet-300'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
 
-            {/* Right icons */}
             <div className="flex items-center gap-2">
               <button
+                type="button"
+                aria-label="Open product search"
                 onClick={() => setSearchOpen(true)}
                 className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                aria-label="Search"
               >
                 <Search className="w-5 h-5" />
               </button>
@@ -150,11 +194,13 @@ export default function StoreNavbar() {
                 )}
               </Link>
 
-              {/* Auth Section */}
               {isAuthenticated ? (
-                <div className="relative ml-2">
-                  <button 
-                    onClick={() => setProfileOpen(!profileOpen)}
+                <div className="relative ml-2" ref={profileRef}>
+                  <button
+                    type="button"
+                    onClick={() => setProfileOpen((current) => !current)}
+                    aria-expanded={profileOpen}
+                    aria-controls="store-profile-menu"
                     className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
                   >
                     <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-xs font-bold text-white shadow-[0_0_10px_rgba(139,92,246,0.3)]">
@@ -165,16 +211,23 @@ export default function StoreNavbar() {
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[#11111a] border border-white/5 shadow-2xl overflow-hidden py-1">
-                      <Link 
-                        to="/shop/orders" 
+                    <div
+                      id="store-profile-menu"
+                      className="absolute right-0 mt-2 w-48 rounded-xl bg-[#11111a] border border-white/5 shadow-2xl overflow-hidden py-1"
+                    >
+                      <Link
+                        to="/shop/orders"
                         onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                       >
                         <ShoppingBag size={16} /> My Orders
                       </Link>
-                      <button 
-                        onClick={() => { logout(); setProfileOpen(false); }}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          logout();
+                          setProfileOpen(false);
+                        }}
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors border-t border-white/5"
                       >
                         <LogOut size={16} /> Logout
@@ -184,14 +237,14 @@ export default function StoreNavbar() {
                 </div>
               ) : (
                 <div className="hidden sm:flex items-center gap-1 ml-2">
-                  <Link 
-                    to="/shop/login" 
+                  <Link
+                    to="/shop/login"
                     className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-all"
                   >
                     Login
                   </Link>
-                  <Link 
-                    to="/shop/signup" 
+                  <Link
+                    to="/shop/signup"
                     className="px-4 py-2 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all"
                   >
                     Sign up
@@ -199,20 +252,21 @@ export default function StoreNavbar() {
                 </div>
               )}
 
-              {/* Mobile menu toggle */}
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
+                type="button"
+                onClick={() => setMenuOpen((current) => !current)}
                 className="lg:hidden p-2 text-gray-400 hover:text-white rounded-lg transition-all"
-                aria-label="Menu"
+                aria-label="Toggle mobile menu"
+                aria-expanded={menuOpen}
+                aria-controls="store-mobile-menu"
               >
                 {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          {/* Mobile menu */}
           {menuOpen && (
-            <div className="lg:hidden pb-4 border-t border-white/5 mt-1">
+            <div id="store-mobile-menu" className="lg:hidden pb-4 border-t border-white/5 mt-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -223,6 +277,41 @@ export default function StoreNavbar() {
                   {link.label}
                 </Link>
               ))}
+
+              <div className="mt-2 border-t border-white/5 pt-2">
+                <Link
+                  to="/shop/wishlist"
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition"
+                >
+                  Wishlist ({wishlist?.item_count || 0})
+                </Link>
+                <Link
+                  to="/shop/orders"
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition"
+                >
+                  Orders
+                </Link>
+                {!isAuthenticated && (
+                  <>
+                    <Link
+                      to="/shop/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      to="/shop/signup"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-3 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition"
+                    >
+                      Sign up
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>

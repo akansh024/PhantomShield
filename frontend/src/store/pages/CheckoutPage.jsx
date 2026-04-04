@@ -18,7 +18,7 @@ function Field({ label, id, error, children }) {
     <div>
       <label htmlFor={id} className="block text-sm text-gray-400 mb-1.5 font-medium">{label}</label>
       {children}
-      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+      {error && <p id={`${id}-error`} className="text-red-400 text-xs mt-1">{error}</p>}
     </div>
   );
 }
@@ -27,6 +27,8 @@ function Input({ id, error, ...props }) {
   return (
     <input
       id={id}
+      aria-invalid={Boolean(error)}
+      aria-describedby={error ? `${id}-error` : undefined}
       className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 focus:outline-none transition
         ${error ? 'border-red-500/50 focus:border-red-400' : 'border-white/10 focus:border-violet-500'}`}
       {...props}
@@ -128,7 +130,7 @@ export default function CheckoutPage() {
                   <Input id="full_name" placeholder="Rahul Sharma" value={form.full_name} onChange={e => set('full_name', e.target.value)} error={errors.full_name} />
                 </Field>
                 <Field label="Phone Number *" id="phone" error={errors.phone}>
-                  <Input id="phone" placeholder="9876543210" maxLength={10} value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, ''))} error={errors.phone} />
+                  <Input id="phone" inputMode="numeric" placeholder="9876543210" maxLength={10} value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, ''))} error={errors.phone} />
                 </Field>
               </div>
 
@@ -147,6 +149,8 @@ export default function CheckoutPage() {
                   <Field label="State *" id="state" error={errors.state}>
                     <select
                       id="state"
+                      aria-invalid={Boolean(errors.state)}
+                      aria-describedby={errors.state ? 'state-error' : undefined}
                       value={form.state}
                       onChange={e => set('state', e.target.value)}
                       className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-sm focus:outline-none transition
@@ -172,6 +176,7 @@ export default function CheckoutPage() {
               </h2>
               <div className="flex gap-3">
                 <input
+                  aria-label="Promo code"
                   placeholder="WELCOME10, SAVE15, FLAT100, FLAT200"
                   value={promoCode}
                   onChange={e => setPromoCode(e.target.value.toUpperCase())}

@@ -2,27 +2,38 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, X, Terminal, Key, User } from 'lucide-react';
+import { adminApi } from '../../ops/api/adminApi';
 
 export default function AdminLoginModal({ isOpen, onClose }) {
   const [operatorName, setOperatorName] = useState('');
   const [operatorId, setOperatorId] = useState('');
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
-    if (operatorId === 'phantom_07' && passcode === 'admin123') {
-      setError(false);
-      // Temporarily store admin clearance
-      localStorage.setItem('admin_clearance', 'verified');
-      if (operatorName.trim()) {
-        localStorage.setItem('admin_name', operatorName.trim());
+    setLoading(true);
+    setError(false);
+    
+    try {
+      const response = await adminApi.login(operatorId, passcode);
+      if (response.access_token) {
+        localStorage.setItem('admin_clearance', 'verified');
+        if (operatorName.trim()) {
+          localStorage.setItem('admin_name', operatorName.trim());
+        }
+        navigate('/dashboard');
+        onClose();
+      } else {
+        setError(true);
       }
-      navigate('/dashboard');
-    } else {
+    } catch (err) {
       setError(true);
       setPasscode('');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,12 +136,13 @@ export default function AdminLoginModal({ isOpen, onClose }) {
                 </div>
 
                 <motion.button
-                  whileHover={{ y: -1, boxShadow: "0 4px 12px rgba(0,255,170,0.2)" }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={!loading ? { y: -1, boxShadow: "0 4px 12px rgba(0,255,170,0.2)" } : {}}
+                  whileTap={!loading ? { scale: 0.98 } : {}}
                   type="submit"
-                  className="mt-2 w-full flex items-center justify-center gap-2 font-['Space_Grotesk'] font-bold text-[13px] tracking-tight uppercase py-3 rounded-md bg-[#00ffaa] text-[#13141a] transition-all cursor-pointer"
+                  disabled={loading}
+                  className={`mt-2 w-full flex items-center justify-center gap-2 font-['Space_Grotesk'] font-bold text-[13px] tracking-tight uppercase py-3 rounded-md bg-[#00ffaa] text-[#13141a] transition-all ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  Verify Identity
+                  {loading ? 'Authenticating...' : 'Verify Identity'}
                 </motion.button>
               </form>
             </motion.div>

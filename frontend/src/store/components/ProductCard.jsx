@@ -27,9 +27,11 @@ export default function ProductCard({ product, compact = false }) {
     <article className="group relative bg-[#111120] border border-white/5 rounded-2xl overflow-hidden hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(139,92,246,0.12)] flex flex-col">
       {/* Wishlist button */}
       <button
+        type="button"
         onClick={(e) => { e.preventDefault(); toggleWishlist(product.id, product.name); }}
         className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition-all"
         aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+        aria-pressed={inWishlist}
       >
         <Heart className={`w-4 h-4 transition-colors ${inWishlist ? 'fill-pink-500 text-pink-500' : 'text-gray-400 hover:text-pink-400'}`} />
       </button>
@@ -89,8 +91,10 @@ export default function ProductCard({ product, compact = false }) {
 
         {/* Add to cart */}
         <button
+          type="button"
           onClick={() => addToCart(product.id, 1, product.name)}
           disabled={product.stock === 0 || cartLoading}
+          aria-label={product.stock === 0 ? `Out of stock: ${product.name}` : `Add ${product.name} to cart`}
           className="mt-2 w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-xl transition-all active:scale-95"
         >
           <ShoppingCart className="w-4 h-4" />
