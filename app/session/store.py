@@ -109,6 +109,12 @@ class MongoSessionStore:
                 return None
 
             state = self._deserialize(doc)
+            
+            # Manually check expiry since TTL background thread might not have run yet
+            if (datetime.utcnow() - state.last_activity).total_seconds() > SESSION_EXPIRY_SECONDS:
+                collection.delete_one({"session_id": session_id})
+                return None
+                
             state.update_activity()
             # Update last_activity in DB
             collection.update_one(

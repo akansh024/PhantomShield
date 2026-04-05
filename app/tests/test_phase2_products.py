@@ -14,7 +14,9 @@ def _json_shape(value):
 
 
 def test_products_endpoint_works_for_real_session() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     with TestClient(app) as client:
         response = client.get("/api/store/products?page=1&limit=5")
@@ -30,7 +32,9 @@ def test_products_endpoint_works_for_real_session() -> None:
 
 
 def test_products_endpoint_schema_matches_between_real_and_decoy() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     with TestClient(app) as real_client:
         real_response = real_client.get("/api/store/products?page=1&limit=2")
@@ -53,7 +57,9 @@ def test_products_endpoint_schema_matches_between_real_and_decoy() -> None:
 
 
 def test_featured_products_endpoint_exists() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     with TestClient(app) as client:
         response = client.get("/api/store/products/featured?limit=4")
@@ -68,7 +74,9 @@ def test_featured_products_endpoint_exists() -> None:
 
 
 def test_product_details_and_categories_endpoints() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     with TestClient(app) as client:
         products = client.get("/api/store/products?page=1&limit=1")
@@ -85,7 +93,9 @@ def test_product_details_and_categories_endpoints() -> None:
 
 
 def test_product_not_found_returns_404() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     with TestClient(app) as client:
         response = client.get("/api/store/products/prod_does_not_exist")

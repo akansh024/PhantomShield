@@ -13,18 +13,16 @@ Exposes six singleton store instances, strictly isolated by mode:
 These are NEVER cross-accessed. factory.py controls which one is used.
 """
 
-from app.stores.cart_store import InMemoryCartStore
-from app.stores.wishlist_store import InMemoryWishlistStore
-from app.stores.order_store import InMemoryOrderStore
+from app.stores.mongo_store import MongoCartStore, MongoWishlistStore, MongoOrderStore
 
-real_cart_store = InMemoryCartStore()
-decoy_cart_store = InMemoryCartStore()
+real_cart_store = MongoCartStore(routing_state="REAL")
+decoy_cart_store = MongoCartStore(routing_state="DECOY")
 
-real_wishlist_store = InMemoryWishlistStore()
-decoy_wishlist_store = InMemoryWishlistStore()
+real_wishlist_store = MongoWishlistStore(routing_state="REAL")
+decoy_wishlist_store = MongoWishlistStore(routing_state="DECOY")
 
-real_order_store = InMemoryOrderStore()
-decoy_order_store = InMemoryOrderStore()
+real_order_store = MongoOrderStore(routing_state="REAL")
+decoy_order_store = MongoOrderStore(routing_state="DECOY")
 
 __all__ = [
     "real_cart_store",

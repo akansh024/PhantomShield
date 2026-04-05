@@ -26,15 +26,30 @@ class MongoAdminRepository:
         self._client: MongoClient | None = None
         self._sessions: Collection | None = None
         self._forensics: Collection | None = None
+        self._cart: Collection | None = None
+        self._wishlist: Collection | None = None
+        self._orders: Collection | None = None
         self._lock = Lock()
 
-    def _get_collections(self) -> tuple[Collection, Collection] | None:
+    def _get_collections(self) -> dict[str, Collection] | None:
         if self._sessions is not None and self._forensics is not None:
-            return self._sessions, self._forensics
+            return {
+                "sessions": self._sessions,
+                "forensics": self._forensics,
+                "cart": self._cart,
+                "wishlist": self._wishlist,
+                "orders": self._orders,
+            }
 
         with self._lock:
             if self._sessions is not None and self._forensics is not None:
-                return self._sessions, self._forensics
+                return {
+                    "sessions": self._sessions,
+                    "forensics": self._forensics,
+                    "cart": self._cart,
+                    "wishlist": self._wishlist,
+                    "orders": self._orders,
+                }
 
             settings = get_settings()
             if not settings.mongodb_uri:
@@ -48,7 +63,16 @@ class MongoAdminRepository:
                 db = self._client[settings.mongodb_db_name]
                 self._sessions = db[settings.mongodb_sessions_collection]
                 self._forensics = db[settings.mongodb_forensic_collection]
-                return self._sessions, self._forensics
+                self._cart = db[settings.mongodb_cart_collection]
+                self._wishlist = db[settings.mongodb_wishlist_collection]
+                self._orders = db[settings.mongodb_orders_collection]
+                return {
+                    "sessions": self._sessions,
+                    "forensics": self._forensics,
+                    "cart": self._cart,
+                    "wishlist": self._wishlist,
+                    "orders": self._orders,
+                }
             except PyMongoError:
                 return None
 
@@ -63,7 +87,11 @@ class MongoAdminRepository:
                 average_risk_score=0.0
             )
 
-        sessions_coll, forensics_coll = collections
+        sessions_coll = collections["sessions"]
+        forensics_coll = collections["forensics"]
+        cart_coll = collections["cart"]
+        wishlist_coll = collections["wishlist"]
+        orders_coll = collections["orders"]
 
         now = datetime.utcnow()
         active_threshold = now - timedelta(minutes=15)
@@ -84,9 +112,9 @@ class MongoAdminRepository:
 
         # 3. forensic event counts
         total_events = forensics_coll.count_documents({})
-        total_cart_actions = forensics_coll.count_documents({"action": {"$in": ["add_to_cart", "remove_from_cart", "update_quantity"]}})
-        total_wishlist_actions = forensics_coll.count_documents({"action": {"$in": ["wishlist_add", "wishlist_remove"]}})
-        total_orders = forensics_coll.count_documents({"action": "checkout_complete"})
+        total_cart_actions = cart_coll.count_documents({})
+        total_wishlist_actions = wishlist_coll.count_documents({})
+        total_orders = orders_coll.count_documents({})
 
         return DashboardSummary(
             total_sessions=total_sessions,
@@ -108,7 +136,7 @@ class MongoAdminRepository:
         if not collections:
             return []
 
-        sessions_coll, _ = collections
+        sessions_coll = collections["sessions"]
         query: dict[str, Any] = {}
 
         if routing_state:
@@ -148,7 +176,7 @@ class MongoAdminRepository:
         if not collections:
             return []
         
-        _, forensics_coll = collections
+        forensics_coll = collections["forensics"]
         cursor = forensics_coll.find({"session_id": session_id}).sort("timestamp", DESCENDING)
         
         return list(cursor)
@@ -161,48 +189,44 @@ class MongoAdminRepository:
         if not collections:
             return []
         
-        _, forensics_coll = collections
-        
-        action_map = {
-            "view": "product_view",
-            "cart": "add_to_cart",
-            "order": "checkout_complete"
-        }
-        action = action_map.get(metric, "product_view")
-        
-        pipeline: list[dict[str, Any]] = [
-            {"$match": {"action": action}},
-            {"$unwind": "$payload"}, # payload might mention product_id or be simple
-            # Since our forensics payload are dictionaries, we need to handle extraction.
-            # If action="checkout_complete", payload.items is a list.
-            # If action="product_view", payload.product_id is a string.
-        ]
-        
-        # Simplified for now (assuming direct payload.product_id for views/cart)
-        if metric in ["view", "cart"]:
-            pipeline.extend([
+        results = []
+        if metric == "cart":
+            pipeline = [
+                {"$group": {
+                    "_id": "$product_id",
+                    "product_name": {"$first": "Unknown Product"},
+                    "count": {"$sum": "$quantity"}
+                }},
+                {"$sort": {"count": -1}},
+                {"$limit": limit}
+            ]
+            results = list(collections["cart"].aggregate(pipeline))
+        elif metric == "order":
+            pipeline = [
+                {"$unwind": "$items"},
+                {"$group": {
+                    "_id": "$items.product_id",
+                    "product_name": {"$first": "$items.name"},
+                    "count": {"$sum": "$items.quantity"}
+                }},
+                {"$sort": {"count": -1}},
+                {"$limit": limit}
+            ]
+            results = list(collections["orders"].aggregate(pipeline))
+        else:
+            pipeline = [
+                {"$match": {"action": "product_view"}},
+                {"$unwind": "$payload"},
                 {"$group": {
                     "_id": "$payload.product_id", 
-                    "product_name": {"$first": "$payload.product_name"}, # if logged
+                    "product_name": {"$first": "$payload.product_name"},
                     "count": {"$sum": 1}
                 }},
                 {"$sort": {"count": -1}},
                 {"$limit": limit}
-            ])
-        else:
-            # Orders are more complex (items list)
-            pipeline.extend([
-                {"$unwind": "$payload.items"},
-                {"$group": {
-                    "_id": "$payload.items.product_id",
-                    "product_name": {"$first": "$payload.items.name"},
-                    "count": {"$sum": "$payload.items.quantity"}
-                }},
-                {"$sort": {"count": -1}},
-                {"$limit": limit}
-            ])
-
-        results = list(forensics_coll.aggregate(pipeline))
+            ]
+            results = list(collections["forensics"].aggregate(pipeline))
+        
         return [
             ProductCount(
                 product_id=str(r["_id"]),
@@ -217,7 +241,7 @@ class MongoAdminRepository:
         if not collections:
             return []
         
-        sessions_coll, _ = collections
+        sessions_coll = collections["sessions"]
         
         # Group sessions by hour for the last 12 hours
         twelve_hours_ago = datetime.utcnow() - timedelta(hours=12)

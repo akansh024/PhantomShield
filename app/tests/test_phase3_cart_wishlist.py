@@ -11,10 +11,10 @@ from app.stores import (
 
 
 def _reset_stores() -> None:
-    real_cart_store._data.clear()  # noqa: SLF001 - test-only cleanup
-    decoy_cart_store._data.clear()  # noqa: SLF001 - test-only cleanup
-    real_wishlist_store._data.clear()  # noqa: SLF001 - test-only cleanup
-    decoy_wishlist_store._data.clear()  # noqa: SLF001 - test-only cleanup
+    for store in (real_cart_store, decoy_cart_store, real_wishlist_store, decoy_wishlist_store):
+        coll = store._get_coll()
+        if coll is not None:
+            coll.delete_many({})
 
 
 def test_guest_can_use_cart_and_wishlist_without_login() -> None:

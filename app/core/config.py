@@ -34,6 +34,9 @@ class Settings:
     mongodb_users_collection: str
     mongodb_forensic_collection: str
     mongodb_sessions_collection: str
+    mongodb_cart_collection: str
+    mongodb_wishlist_collection: str
+    mongodb_orders_collection: str
     mongodb_timeout_ms: int
 
 
@@ -46,5 +49,8 @@ def get_settings() -> Settings:
         mongodb_users_collection=os.getenv("MONGODB_USERS_COLLECTION", "users"),
         mongodb_forensic_collection=os.getenv("MONGODB_FORENSIC_COLLECTION", "forensic_events"),
         mongodb_sessions_collection=os.getenv("MONGODB_SESSIONS_COLLECTION", "sessions"),
+        mongodb_cart_collection=os.getenv("MONGODB_CART_COLLECTION", "cart_items"),
+        mongodb_wishlist_collection=os.getenv("MONGODB_WISHLIST_COLLECTION", "wishlist_items"),
+        mongodb_orders_collection=os.getenv("MONGODB_ORDERS_COLLECTION", "orders"),
         mongodb_timeout_ms=int(os.getenv("MONGODB_TIMEOUT_MS", "5000")),
     )
