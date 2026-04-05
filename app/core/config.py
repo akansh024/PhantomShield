@@ -32,6 +32,8 @@ class Settings:
     mongodb_uri: str
     mongodb_db_name: str
     mongodb_users_collection: str
+    mongodb_forensic_collection: str
+    mongodb_sessions_collection: str
     mongodb_timeout_ms: int
 
 
@@ -42,5 +44,7 @@ def get_settings() -> Settings:
         mongodb_uri=os.getenv("MONGODB_URI", "").strip(),
         mongodb_db_name=os.getenv("MONGODB_DB_NAME", "phantomshield"),
         mongodb_users_collection=os.getenv("MONGODB_USERS_COLLECTION", "users"),
+        mongodb_forensic_collection=os.getenv("MONGODB_FORENSIC_COLLECTION", "forensic_events"),
+        mongodb_sessions_collection=os.getenv("MONGODB_SESSIONS_COLLECTION", "sessions"),
         mongodb_timeout_ms=int(os.getenv("MONGODB_TIMEOUT_MS", "5000")),
     )

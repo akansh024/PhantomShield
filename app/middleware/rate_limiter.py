@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 request_log = {}
 
 # limits — raised from 8 to accommodate store frontend parallel requests
-MAX_REQUESTS = 60
+MAX_REQUESTS = 300
 WINDOW_SECONDS = 60
 
 

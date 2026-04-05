@@ -65,7 +65,7 @@ class DecoyWishlistRepository(AbstractWishlistRepository):
 
         self._store.add_item(session.session_id, product_id)
         self._log(
-            "add_to_wishlist",
+            "wishlist_add",
             {"product_id": product_id, "product_name": product.name},
         )
         items = self._assemble(session.session_id)
@@ -75,6 +75,6 @@ class DecoyWishlistRepository(AbstractWishlistRepository):
         result = self._store.remove_item(session.session_id, product_id)
         if result is None:
             raise HTTPException(status_code=404, detail="Item not in wishlist.")
-        self._log("remove_from_wishlist", {"product_id": product_id})
+        self._log("wishlist_remove", {"product_id": product_id})
         items = self._assemble(session.session_id)
         return Wishlist(items=items, item_count=len(items))

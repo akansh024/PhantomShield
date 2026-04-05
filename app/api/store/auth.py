@@ -22,6 +22,14 @@ from app.session.constants import (
     SESSION_MAX_AGE_SECONDS,
 )
 from app.session.store import session_store
+from app.stores import (
+    decoy_cart_store,
+    decoy_order_store,
+    decoy_wishlist_store,
+    real_cart_store,
+    real_order_store,
+    real_wishlist_store,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["store-auth"])
 
@@ -43,6 +51,21 @@ def _set_identity_cookies(response: Response, *, session_id: str, token: str) ->
         max_age=SESSION_MAX_AGE_SECONDS,
         path=COOKIE_PATH,
     )
+
+
+def _migrate_session_state(*, old_session_id: str, new_session_id: str, routing_state: str) -> None:
+    """
+    Preserve guest cart/wishlist/order state across session_id rotation on login.
+    """
+    if routing_state == "DECOY":
+        decoy_cart_store.rebind_session(old_session_id, new_session_id)
+        decoy_wishlist_store.rebind_session(old_session_id, new_session_id)
+        decoy_order_store.rebind_session(old_session_id, new_session_id)
+        return
+
+    real_cart_store.rebind_session(old_session_id, new_session_id)
+    real_wishlist_store.rebind_session(old_session_id, new_session_id)
+    real_order_store.rebind_session(old_session_id, new_session_id)
 
 
 @router.post("/signup")
@@ -75,7 +98,20 @@ async def signup(
         if user:
             raise HTTPException(status_code=400, detail="User already exists")
 
-        create_user(name=name, email=email, hashed_password=hash_password(password))
+        try:
+            hashed_password = hash_password(password)
+        except ValueError as exc:
+            track_event(
+                request,
+                "signup_validation_failed",
+                {"reason": str(exc)},
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Password is invalid. Use a shorter password and try again.",
+            ) from exc
+
+        create_user(name=name, email=email, hashed_password=hashed_password)
         return {"status": "success", "message": "User registered successfully"}
     except DuplicateUserError:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -100,9 +136,15 @@ async def login(
 
     if is_decoy:
         fake_user_id = f"fake_{secrets.token_urlsafe(8)}"
+        old_session_id = session.session_id
 
         # Rotate session_id on login as a fixation mitigation requirement.
         new_session = session_store.rotate_session(session.session_id)
+        _migrate_session_state(
+            old_session_id=old_session_id,
+            new_session_id=new_session.session_id,
+            routing_state=session.routing_state,
+        )
         new_session.user_id = fake_user_id
         new_session.user_name = email.split("@")[0].capitalize()
         request.state.session = new_session
@@ -133,9 +175,15 @@ async def login(
 
     user_id = str(user["_id"])
     user_name = user["name"]
+    old_session_id = session.session_id
 
     # Rotate first, then mint JWT with the rotated session_id.
     new_session = session_store.rotate_session(session.session_id)
+    _migrate_session_state(
+        old_session_id=old_session_id,
+        new_session_id=new_session.session_id,
+        routing_state=session.routing_state,
+    )
     new_session.user_id = user_id
     new_session.user_name = user_name
     request.state.session = new_session

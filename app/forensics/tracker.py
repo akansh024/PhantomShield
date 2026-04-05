@@ -1,59 +1,70 @@
 """
-PhantomShield – Forensic Tracker
-
-Unified event logging for all storefront interactions.
-Captures session context, user identity, and routing mode.
+Unified forensic tracking entrypoints.
 """
 
-import json
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
+
 from fastapi import Request
 
-# Constants
-FORENSIC_LOG_DIR = Path("app/forensics/logs")
-FORENSIC_LOG_FILE = FORENSIC_LOG_DIR / "storefront_events.jsonl"
+from app.forensics.schemas import ForensicEvent
+from app.forensics.sink import write_forensic_event
+from app.session.models import SessionState
+
+
+def _normalize_mode(raw_mode: str | None) -> str:
+    mode = (raw_mode or "REAL").upper()
+    return "DECOY" if mode == "DECOY" else "REAL"
+
+
+def track_session_event(
+    *,
+    session: SessionState,
+    action: str,
+    route: str,
+    payload: dict[str, Any] | None = None,
+    method: str | None = None,
+    client_ip: str | None = None,
+    notes: str | None = None,
+) -> None:
+    """
+    Write a forensic event when only session context is available.
+    """
+    event = ForensicEvent(
+        session_id=session.session_id,
+        user_id=session.user_id,
+        action=action,
+        route=route,
+        payload=payload or {},
+        mode=_normalize_mode(session.routing_state),
+        method=method,
+        client_ip=client_ip,
+        risk_score=round(session.risk_score, 4),
+        notes=notes,
+    )
+    write_forensic_event(event.to_record())
+
 
 def track_event(
     request: Request,
     action: str,
-    payload: Optional[Dict[str, Any]] = None,
-    notes: Optional[str] = None
+    payload: dict[str, Any] | None = None,
+    notes: str | None = None,
 ) -> None:
     """
-    Records a structured forensic event.
-    Safe to call from any route handler—automatically extracts session context.
+    Write a forensic event from a request context.
     """
-    try:
-        # 1. Extract context from request state (attached by middleware)
-        session = getattr(request.state, "session", None)
-        if not session:
-            return
+    session = getattr(request.state, "session", None)
+    if session is None:
+        return
 
-        # 2. Build structured event
-        event = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "session_id": session.session_id,
-            "user_id": session.user_id,
-            "action": action,
-            "route": request.url.path,
-            "method": request.method,
-            "payload": payload or {},
-            "mode": session.routing_state,  # REAL or DECOY
-            "risk_score": session.risk_score,
-            "client_ip": request.client.host if request.client else "unknown",
-            "notes": notes
-        }
-
-        # 3. Ensure log directory exists
-        FORENSIC_LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-        # 4. Append to JSONL log
-        with open(FORENSIC_LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(event) + "\n")
-
-    except Exception as e:
-        # Fail silently to avoid interrupting the user experience
-        # In a real system, we would log this to a secondary error log
-        print(f"Forensic Logging Error: {e}")
+    track_session_event(
+        session=session,
+        action=action,
+        route=request.url.path,
+        payload=payload,
+        method=request.method,
+        client_ip=request.client.host if request.client else "unknown",
+        notes=notes,
+    )

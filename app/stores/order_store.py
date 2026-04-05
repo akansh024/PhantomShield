@@ -45,5 +45,19 @@ class InMemoryOrderStore:
             None,
         )
 
+    def rebind_session(self, old_session_id: str, new_session_id: str) -> None:
+        """
+        Move order history from old session to new session.
+        """
+        if old_session_id == new_session_id:
+            return
+
+        old_bucket = self._data.pop(old_session_id, None)
+        if not old_bucket:
+            return
+
+        new_bucket = self._bucket(new_session_id)
+        new_bucket.extend(old_bucket)
+
     def count(self, session_id: str) -> int:
         return len(self._bucket(session_id))
