@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -40,8 +39,10 @@ class Settings:
     mongodb_timeout_ms: int
 
 
-@lru_cache
 def get_settings() -> Settings:
+    # Re-load .env on access so dev servers don't hold stale settings
+    # when .env is created/updated after process start.
+    _load_env_file(PROJECT_ROOT / ".env")
     return Settings(
         jwt_secret=os.getenv("JWT_SECRET", "phantom-dev-secret-key-super-secure"),
         mongodb_uri=os.getenv("MONGODB_URI", "").strip(),
