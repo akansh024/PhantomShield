@@ -56,11 +56,22 @@ class SessionRoutingMiddleware(BaseHTTPMiddleware):
                 }
             )
 
+        sensitive_prefixes = (
+            "/api/internal", "/api/secrets", "/api/config",
+            "/api/users/export", "/api/payment-history",
+            "/hidden", "/backup", "/private", "/dev", "/staging", "/old-admin",
+            "/admin"
+        )
+        path = request.url.path
+        if any(path.startswith(p) for p in sensitive_prefixes) and not path.startswith("/api/admin"):
+            session.flags["hit_sensitive_route"] = True
+
         canary = detect_canary_hit(
             request_path=request.url.path,
             query_params=dict(request.query_params),
         )
         if canary:
+            session.flags["hit_sensitive_route"] = True
             before = session.risk_score
             apply_canary_impact(session_manager=session_manager, canary=canary)
             delta = round(max(session.risk_score - before, 0.0), 4)
