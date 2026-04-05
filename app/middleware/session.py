@@ -73,9 +73,7 @@ class StoreSessionMiddleware(BaseHTTPMiddleware):
         if session is None:
             session = session_store.create_session()
             session.risk_score = _heuristic_risk(request)
-            session.routing_state = (
-                "DECOY" if session.risk_score >= HIGH_RISK_THRESHOLD else "REAL"
-            )
+            session.routing_state = "REAL"
             is_new_session = True
 
         request.state.session = session

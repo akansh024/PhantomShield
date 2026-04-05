@@ -46,6 +46,7 @@ def evaluate_policy(
     *,
     risk_score: float,
     current_route: Route,
+    hit_sensitive_route: bool = False,
 ) -> PolicyDecision:
     """
     Evaluate routing policy for a session.
@@ -53,6 +54,7 @@ def evaluate_policy(
     Args:
         risk_score: Current cumulative session risk (0.0 – 1.0)
         current_route: Current session routing state ("REAL" or "DECOY")
+        hit_sensitive_route: True if restricted route was requested
 
     Returns:
         PolicyDecision indicating desired route and reason.
@@ -65,15 +67,15 @@ def evaluate_policy(
             reason="one_way_escalation_lock"
         )
 
-    # --- Rule 2: High risk triggers decoy ---
-    if risk_score >= HIGH_RISK_THRESHOLD:
+    # --- Rule 2: Sensitive route requested ---
+    if hit_sensitive_route:
         return PolicyDecision(
             route="DECOY",
-            reason="risk_above_high_threshold"
+            reason="sensitive_route_requested"
         )
 
     # --- Rule 3: All other cases remain real ---
     return PolicyDecision(
         route="REAL",
-        reason="risk_below_threshold"
+        reason="no_sensitive_route_requested"
     )

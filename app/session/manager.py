@@ -106,6 +106,7 @@ class SessionManager:
         decision = evaluate_policy(
             risk_score=self.session.risk_score,
             current_route=self.session.routing_state,
+            hit_sensitive_route=self.session.flags.get("hit_sensitive_route", False),
         )
 
         # Apply escalation ONLY if moving to DECOY.
