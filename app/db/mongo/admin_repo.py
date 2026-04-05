@@ -110,7 +110,39 @@ class MongoAdminRepository:
         avg_risk_result = list(sessions_coll.aggregate(avg_risk_pipeline))
         average_risk_score = avg_risk_result[0]["avg_risk"] if avg_risk_result else 0.0
 
-        # 3. forensic event counts
+        # 3. Distribution calculations (REAL vs DECOY / Risk Buckets)
+        mode_dist = {
+            "REAL": real_sessions,
+            "DECOY": decoy_sessions
+        }
+        
+        # Risk buckets: 0.0-0.2, 0.2-0.4, 0.4-0.6, 0.6-0.8, 0.8-1.0
+        risk_pipeline = [
+            {"$project": {
+                "bucket": {
+                    "$switch": {
+                        "branches": [
+                            {"case": {"$lte": ["$risk_score", 0.2]}, "then": "0.0-0.2"},
+                            {"case": {"$lte": ["$risk_score", 0.4]}, "then": "0.2-0.4"},
+                            {"case": {"$lte": ["$risk_score", 0.6]}, "then": "0.4-0.6"},
+                            {"case": {"$lte": ["$risk_score", 0.8]}, "then": "0.6-0.8"},
+                            {"case": {"$gt": ["$risk_score", 0.8]}, "then": "0.8-1.0"}
+                        ],
+                        "default": "0.0-0.2"
+                    }
+                }
+            }},
+            {"$group": {"_id": "$bucket", "count": {"$sum": 1}}}
+        ]
+        risk_results = list(sessions_coll.aggregate(risk_pipeline))
+        risk_dist = {r["_id"]: r["count"] for r in risk_results}
+        
+        # Ensure all buckets are present for the frontend
+        for label in ["0.0-0.2", "0.2-0.4", "0.4-0.6", "0.6-0.8", "0.8-1.0"]:
+            if label not in risk_dist:
+                risk_dist[label] = 0
+
+        # 4. forensic event counts
         total_events = forensics_coll.count_documents({})
         total_cart_actions = cart_coll.count_documents({})
         total_wishlist_actions = wishlist_coll.count_documents({})
@@ -126,7 +158,9 @@ class MongoAdminRepository:
             total_cart_actions=total_cart_actions,
             total_wishlist_actions=total_wishlist_actions,
             total_orders=total_orders,
-            average_risk_score=round(average_risk_score or 0.0, 4)
+            average_risk_score=round(average_risk_score or 0.0, 4),
+            mode_distribution=mode_dist,
+            risk_distribution=risk_dist
         )
 
     def get_sessions(
@@ -181,6 +215,14 @@ class MongoAdminRepository:
         
         return list(cursor)
 
+    def _get_product_name_map(self) -> dict[str, str]:
+        """Loads the real product catalog to map IDs to names."""
+        try:
+            from app.repositories.real.product_repo import _load_products
+            return {p.id: p.name for p in _load_products()}
+        except Exception:
+            return {}
+
     def get_top_products(self, metric: str = "view", limit: int = 5) -> list[ProductCount]:
         """
         metric: view | cart | order
@@ -189,12 +231,13 @@ class MongoAdminRepository:
         if not collections:
             return []
         
+        name_map = self._get_product_name_map()
         results = []
+        
         if metric == "cart":
             pipeline = [
                 {"$group": {
                     "_id": "$product_id",
-                    "product_name": {"$first": "Unknown Product"},
                     "count": {"$sum": "$quantity"}
                 }},
                 {"$sort": {"count": -1}},
@@ -214,9 +257,9 @@ class MongoAdminRepository:
             ]
             results = list(collections["orders"].aggregate(pipeline))
         else:
+            # "view" metric — payload is a dict, NOT an array, so no $unwind
             pipeline = [
                 {"$match": {"action": "product_view"}},
-                {"$unwind": "$payload"},
                 {"$group": {
                     "_id": "$payload.product_id", 
                     "product_name": {"$first": "$payload.product_name"},
@@ -230,7 +273,7 @@ class MongoAdminRepository:
         return [
             ProductCount(
                 product_id=str(r["_id"]),
-                product_name=r.get("product_name", "Unknown Product"),
+                product_name=r.get("product_name") or name_map.get(str(r["_id"])) or "Unknown Product",
                 count=r["count"]
             )
             for r in results if r["_id"]
@@ -280,6 +323,166 @@ class MongoAdminRepository:
             for r in results
         ]
 
+
+    def get_dashboard_overview(self) -> dict[str, int]:
+        collections = self._get_collections()
+        empty = {"total_sessions": 0, "active_sessions": 0, "total_orders": 0, 
+                 "total_cart_items": 0, "total_wishlist_items": 0, 
+                 "suspicious_sessions": 0, "decoy_sessions": 0}
+        if not collections: return empty
+
+        now = datetime.utcnow()
+        sessions = collections["sessions"]
+        cart_coll = collections["cart"]
+        wishlist_coll = collections["wishlist"]
+        orders_coll = collections["orders"]
+
+        # Cart documents are individual items per session, so count_documents gives total line items.
+        # Orders documents are single orders.
+        # Wishlist documents are single product_ids per session.
+        return {
+            "total_sessions": sessions.count_documents({}),
+            "active_sessions": sessions.count_documents({"last_activity": {"$gt": now - timedelta(minutes=15)}}),
+            "total_orders": orders_coll.count_documents({}),
+            "total_cart_items": cart_coll.count_documents({}),
+            "total_wishlist_items": wishlist_coll.count_documents({}),
+            "suspicious_sessions": sessions.count_documents({"risk_score": {"$gte": 0.60}}),
+            "decoy_sessions": sessions.count_documents({"routing_state": "DECOY"})
+        }
+
+    def get_dashboard_session_trends(self) -> list[dict[str, Any]]:
+        collections = self._get_collections()
+        if not collections: return []
+        
+        twelve_hours_ago = datetime.utcnow() - timedelta(hours=12)
+        pipeline = [
+            {"$match": {"last_activity": {"$gt": twelve_hours_ago}}},
+            {"$group": {
+                "_id": {
+                    "$dateTrunc": {"date": "$last_activity", "unit": "minute", "binSize": 15}
+                },
+                "active_sessions": {"$sum": 1}
+            }},
+            {"$sort": {"_id": 1}}
+        ]
+        
+        results = list(collections["sessions"].aggregate(pipeline))
+        return [
+            {
+                "time": r["_id"].strftime("%H:%M"),
+                "active_sessions": r["active_sessions"]
+            }
+            for r in results
+        ]
+
+    def get_dashboard_forensic_summary(self) -> dict[str, Any]:
+        collections = self._get_collections()
+        empty = {"common_actions": [], "targeted_routes": [], "suspicious_sessions": []}
+        if not collections: return empty
+        
+        forensics = collections["forensics"]
+        sessions = collections["sessions"]
+        
+        # Most common actions
+        actions = list(forensics.aggregate([
+            {"$group": {"_id": "$action", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ]))
+        
+        # Most targeted routes
+        routes = list(forensics.aggregate([
+            {"$match": {"route": {"$ne": None}}},
+            {"$group": {"_id": "$route", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ]))
+        
+        # Top suspicious sessions
+        suspicious = list(sessions.find(
+            {"risk_score": {"$gte": 0.50}},
+            {"session_id": 1, "risk_score": 1, "routing_state": 1, "last_activity": 1}
+        ).sort("risk_score", -1).limit(5))
+        
+        return {
+            "common_actions": [{"action": a["_id"], "count": a["count"]} for a in actions],
+            "targeted_routes": [{"route": r["_id"], "count": r["count"]} for r in routes],
+            "suspicious_sessions": [
+                {
+                    "session_id": s["session_id"],
+                    "risk_score": s.get("risk_score", 0.0),
+                    "mode": s.get("routing_state", "REAL"),
+                    "last_activity": s["last_activity"]
+                } for s in suspicious
+            ]
+        }
+
+    def get_dashboard_session_details(self, session_id: str) -> dict[str, Any] | None:
+        collections = self._get_collections()
+        if not collections: return None
+        
+        session = collections["sessions"].find_one({"session_id": session_id})
+        if not session: return None
+        
+        timeline = list(collections["forensics"].find(
+            {"session_id": session_id},
+            {"_id": 0, "timestamp": 1, "action": 1, "route": 1, "payload": 1}
+        ).sort("timestamp", 1))
+        
+        cart = list(collections["cart"].find({"session_id": session_id}, {"_id": 0, "session_id": 0}))
+        wishlist = list(collections["wishlist"].find({"session_id": session_id}, {"_id": 0, "session_id": 0}))
+        orders = list(collections["orders"].find(
+            {"session_id": session_id}, 
+            {"_id": 0, "order_id": 1, "total_value": 1, "items": 1, "created_at": 1}
+        ).sort("created_at", -1))
+        
+        return {
+            "session_id": session["session_id"],
+            "user_id": session.get("user_id"),
+            "mode": session.get("routing_state", "REAL"),
+            "risk_score": session.get("risk_score", 0.0),
+            "timeline": timeline,
+            "cart_activity": cart,
+            "wishlist_activity": wishlist,
+            "orders": orders
+        }
+
+    def get_dashboard_attacks(self) -> dict[str, Any]:
+        collections = self._get_collections()
+        empty = {"not_found_rate": 0.0, "suspicious_routes_hit": 0, "repeated_hits": [], "canary_triggers": 0}
+        if not collections: return empty
+        
+        forensics = collections["forensics"]
+        
+        # 404 rate
+        total_requests = forensics.count_documents({"action": "api_request"})
+        not_found_requests = forensics.count_documents({"action": "api_request", "payload.status_code": 404})
+        rate = (not_found_requests / total_requests) if total_requests > 0 else 0.0
+        
+        # Canary triggers (action = canary_trigger)
+        canary = forensics.count_documents({"action": "canary_trigger"})
+        
+        # Suspicious routes (routing_state = DECOY AND action = api_request)
+        suspicious_hits = forensics.count_documents({"routing_state": "DECOY", "action": "api_request"})
+        
+        # Repeated hits (burst activity: grouping by route and IP/session to find high volume)
+        repeats = list(forensics.aggregate([
+            {"$match": {"action": "api_request"}},
+            {"$group": {
+                "_id": {"route": "$route", "session_id": "$session_id"},
+                "count": {"$sum": 1}
+            }},
+            {"$match": {"count": {"$gt": 10}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ]))
+        
+        return {
+            "not_found_rate": round(rate, 4),
+            "suspicious_routes_hit": suspicious_hits,
+            "canary_triggers": canary,
+            "repeated_hits": [{"route": r["_id"]["route"], "session_id": r["_id"]["session_id"], "count": r["count"]} for r in repeats]
+        }
 
 # Singleton instance
 admin_repo = MongoAdminRepository()

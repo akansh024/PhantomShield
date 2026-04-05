@@ -9,6 +9,7 @@ from app.api.robots import router as robots_router
 from app.api.decoy.routes import router as decoy_router
 from app.api.sensitive import router as sensitive_router
 from app.tests.test import router as test_router
+from app.api.dashboard import router as dashboard_router
 
 # Middleware imports
 from app.middleware.req_logger import RequestLoggerMiddleware
@@ -27,6 +28,7 @@ app.include_router(store_router)            # Store Products/Cart (/api/store)
 app.include_router(robots_router)           # Robots.txt (/robots.txt)
 app.include_router(decoy_router)            # Decoy routes (/decoy)
 app.include_router(sensitive_router)         # Sensitive routes (/api/...)
+app.include_router(dashboard_router)        # Dashboard APIs (/api/dashboard)
 app.include_router(test_router)
 
 # --- Register Middleware (Order: Last Added is Outermost) ---
