@@ -1,43 +1,47 @@
 """
-PhantomShield – Session Models
+PhantomShield - Session Models.
 
-Defines the structure of server-side session state.
-This module contains NO business logic.
+Canonical session fields for routing:
+- session_id
+- user_id (optional)
+- routing_state (REAL | DECOY)
+- risk_score
+- created_at
+- last_activity
 """
 
 from dataclasses import dataclass, field
-from typing import Literal, Dict
 from datetime import datetime
+from typing import Literal, Optional
 
-
-Route = Literal["real", "decoy"]
+RoutingState = Literal["REAL", "DECOY"]
 
 
 @dataclass
 class SessionState:
-    """
-    Represents the mutable state of an authenticated session.
-    """
-
-    # Identity
     session_id: str
-    user_id: str
-
-    # Routing
-    routing_state: Route = "real"
-
-    # Risk
+    user_id: Optional[str] = None
+    routing_state: RoutingState = "REAL"
     risk_score: float = 0.0
-
-    # Flags for policy / debugging
-    flags: Dict[str, bool] = field(default_factory=dict)
-
-    # Timing
     created_at: datetime = field(default_factory=datetime.utcnow)
-    last_activity_at: datetime = field(default_factory=datetime.utcnow)
+    last_activity: datetime = field(default_factory=datetime.utcnow)
+
+    # Optional identity/profile extensions (used by auth responses).
+    user_name: Optional[str] = None
+
+    # Optional server-side flags used by risk/policy modules.
+    flags: dict[str, bool] = field(default_factory=dict)
 
     def update_activity(self) -> None:
+        self.last_activity = datetime.utcnow()
+
+    @property
+    def last_activity_at(self) -> datetime:
         """
-        Update last activity timestamp.
+        Backward-compatible alias for existing modules.
         """
-        self.last_activity_at = datetime.utcnow()
+        return self.last_activity
+
+    @last_activity_at.setter
+    def last_activity_at(self, value: datetime) -> None:
+        self.last_activity = value

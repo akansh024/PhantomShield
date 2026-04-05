@@ -11,7 +11,6 @@ Responsible for:
 This module is the ONLY place allowed to mutate SessionState.
 """
 
-from datetime import datetime
 from typing import Optional
 
 from app.session.models import SessionState
@@ -36,7 +35,7 @@ class SessionManager:
         """
         Update session activity timestamp.
         """
-        self.session.last_activity_at = datetime.utcnow()
+        self.session.update_activity()
 
     # =========================
     # Risk Updates
@@ -109,9 +108,10 @@ class SessionManager:
             current_route=self.session.routing_state,
         )
 
-        # Apply escalation ONLY if moving to decoy
-        if decision.route == "decoy" and self.session.routing_state != "decoy":
-            self.session.routing_state = "decoy"
+        # Apply escalation ONLY if moving to DECOY.
+        target_route = decision.route
+        if target_route == "DECOY" and self.session.routing_state != "DECOY":
+            self.session.routing_state = "DECOY"
             self.session.flags["routed_to_decoy"] = True
 
     # =========================

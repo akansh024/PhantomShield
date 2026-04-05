@@ -1,0 +1,7 @@
+[
+  { "id": "electronics", "label": "Electronics", "icon": "zap", "product_count": 6 },
+  { "id": "clothing", "label": "Clothing", "icon": "shirt", "product_count": 6 },
+  { "id": "books", "label": "Books", "icon": "book-open", "product_count": 6 },
+  { "id": "home", "label": "Home & Kitchen", "icon": "home", "product_count": 6 },
+  { "id": "sports", "label": "Sports & Fitness", "icon": "dumbbell", "product_count": 6 }
+]
