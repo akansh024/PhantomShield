@@ -21,6 +21,8 @@ class DashboardSummary(BaseModel):
     total_wishlist_actions: int
     total_orders: int
     average_risk_score: float
+    mode_distribution: dict[str, int] = Field(default_factory=dict)
+    risk_distribution: dict[str, int] = Field(default_factory=dict)
 
 
 class SessionRecord(BaseModel):

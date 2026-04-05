@@ -77,15 +77,7 @@ export default function OpsTopBar({
             {updatedLabel}
           </span>
 
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 px-3 text-gray-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={onRefresh}
-            disabled={!onRefresh || refreshing}
-          >
-            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-            <span className="hidden sm:inline">Sync</span>
-          </button>
+          {/* Manual refresh hidden as per requirements */}
 
           <button
             type="button"
