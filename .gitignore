@@ -1,2 +1,23 @@
 .env
 .env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+pytest-cache-files-*/
+.venv/
+venv/
+ENV/
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.eslintcache
+
+# Project specific
+app/forensics/logs/*.jsonl
+tmp_login.json
