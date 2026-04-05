@@ -147,13 +147,16 @@ export default function OpsSessionsPage() {
                     </td>
                     <td className="px-6 py-4">
                        <p className="text-xs text-gray-300 font-medium">
-                         {new Date(session.created_at).toLocaleDateString()}
+                         {new Date(typeof session.created_at === 'string' && !session.created_at.endsWith('Z') ? session.created_at + 'Z' : session.created_at).toLocaleDateString()}
                        </p>
                        <p className="text-[10px] text-gray-500 tabular-nums">
-                         {new Date(session.created_at).toLocaleTimeString()}
+                         {new Date(typeof session.created_at === 'string' && !session.created_at.endsWith('Z') ? session.created_at + 'Z' : session.created_at).toLocaleTimeString()}
                        </p>
                     </td>
                     <td className="px-6 py-4">
+                       <p className="text-xs text-gray-300 font-medium mb-1">
+                         {new Date(typeof session.last_activity === 'string' && !session.last_activity.endsWith('Z') ? session.last_activity + 'Z' : session.last_activity).toLocaleTimeString()}
+                       </p>
                        <span className={`inline-flex items-center gap-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${
                          session.status === 'active' ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-500"
                        }`}>
