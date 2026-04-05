@@ -1,50 +1,53 @@
 """
-PhantomShield – Decoy Realism Middleware
+PhantomShield - Decoy realism middleware.
 
-Injects intentional, realistic latency and behavior for DECOY-routed sessions.
-The goal is to simulate normal system processing and keep the attacker
-convinced the environment is a legitimate production store.
+Adds slight, believable latency for DECOY-routed sessions so attacker
+interactions feel natural while remaining fully functional.
 """
+
+from __future__ import annotations
 
 import asyncio
 import random
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-# Config
-DECOY_MIN_LATENCY = 0.2  # 200ms
-DECOY_MAX_LATENCY = 1.8  # 1.8s
+_STORE_PREFIXES = ("/api/store", "/api/auth")
+
+# Slight response delays to mimic realistic backend behavior.
+DECOY_MIN_LATENCY = 0.12
+DECOY_MAX_LATENCY = 0.45
+
+# Extra delay for write-heavy or sensitive routes.
+HEAVY_ROUTE_EXTRA_MIN = 0.20
+HEAVY_ROUTE_EXTRA_MAX = 0.55
+
+
+def _is_store_request(path: str) -> bool:
+    return any(path.startswith(prefix) for prefix in _STORE_PREFIXES)
+
+
+def _compute_delay(request: Request) -> float:
+    delay = random.uniform(DECOY_MIN_LATENCY, DECOY_MAX_LATENCY)
+
+    if request.method in {"POST", "PATCH", "DELETE"}:
+        delay += random.uniform(HEAVY_ROUTE_EXTRA_MIN, HEAVY_ROUTE_EXTRA_MAX)
+
+    if request.url.path.endswith("/orders") or "/auth/" in request.url.path:
+        delay += random.uniform(0.10, 0.30)
+
+    return delay
+
 
 class DecoyRealismMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware that adds randomized latency to responses for
-    DECOY-routed sessions.
-    """
-    
-    async def dispatch(self, request: Request, call_next) -> Response:
-        # 1. Skip non-storefront APIs (Store and Auth)
-        if not any(request.url.path.startswith(p) for p in ["/api/store", "/api/auth"]):
+    async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
+        if not _is_store_request(request.url.path):
             return await call_next(request)
 
-        # 2. Get session context (attached by StoreSessionMiddleware)
         session = getattr(request.state, "session", None)
-        
-        # 3. Only apply to DECOY-routed sessions
         if session and session.routing_state == "DECOY":
-            # Simulate processing delay
-            delay = random.uniform(DECOY_MIN_LATENCY, DECOY_MAX_LATENCY)
-            
-            # Slightly longer delay for heavy operations (signup/login/order)
-            if any(p in request.url.path for p in ["/auth", "/checkout"]):
-                delay += random.uniform(0.5, 1.0)
-            
-            await asyncio.sleep(delay)
+            await asyncio.sleep(_compute_delay(request))
 
-        # 4. Proceed with request
-        response = await call_next(request)
-        
-        # 5. Add custom header for internal tracing (optional, helps development)
-        # response.headers["X-PS-Mode"] = session.routing_state if session else "NONE"
-        
-        return response
+        return await call_next(request)

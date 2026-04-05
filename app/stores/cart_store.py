@@ -109,6 +109,26 @@ class InMemoryCartStore:
     def clear(self, session_id: str) -> None:
         self._data[session_id] = []
 
+    def rebind_session(self, old_session_id: str, new_session_id: str) -> None:
+        """
+        Move cart items from old session to new session.
+        If both buckets exist, merge quantities by product_id.
+        """
+        if old_session_id == new_session_id:
+            return
+
+        old_bucket = self._data.pop(old_session_id, None)
+        if not old_bucket:
+            return
+
+        new_bucket = self._bucket(new_session_id)
+        for old_item in old_bucket:
+            existing = next((i for i in new_bucket if i.product_id == old_item.product_id), None)
+            if existing:
+                existing.quantity += old_item.quantity
+            else:
+                new_bucket.append(old_item)
+
     # ------------------------------------------------------------------
     # Introspection
     # ------------------------------------------------------------------

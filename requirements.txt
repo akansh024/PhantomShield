@@ -2,6 +2,7 @@ fastapi
 uvicorn
 email-validator
 passlib[bcrypt]
+bcrypt==4.0.1
 python-jose
 pymongo
 motor

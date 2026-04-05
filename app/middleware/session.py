@@ -17,7 +17,7 @@ from app.session.constants import (
 )
 from app.session.store import session_store
 
-_STORE_PREFIXES = ("/api/store", "/api/auth")
+_TRACKED_PREFIXES = ("/api", "/decoy", "/robots.txt")
 _BOT_UA_SIGNALS = (
     "bot",
     "crawler",
@@ -58,7 +58,7 @@ def _heuristic_risk(request: Request) -> float:
 
 class StoreSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
-        if not any(request.url.path.startswith(prefix) for prefix in _STORE_PREFIXES):
+        if not any(request.url.path.startswith(prefix) for prefix in _TRACKED_PREFIXES):
             return await call_next(request)
 
         incoming_session_id = request.cookies.get(COOKIE_SESSION_ID)
@@ -93,8 +93,11 @@ class StoreSessionMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
 
-        # Persist session cookie for newly created sessions and rotated sessions.
+        # Persist session state changes to MongoDB (routing, risk, activity context).
         current_session = getattr(request.state, "session", session)
+        session_store.save_session(current_session)
+
+        # Persist session cookie for newly created sessions and rotated sessions.
         if is_new_session or current_session.session_id != incoming_session_id:
             response.set_cookie(
                 key=COOKIE_SESSION_ID,

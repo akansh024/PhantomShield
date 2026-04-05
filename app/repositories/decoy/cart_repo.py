@@ -101,7 +101,7 @@ class DecoyCartRepository(AbstractCartRepository):
         if result is None:
             raise HTTPException(status_code=404, detail="Item not in cart.")
         self._log(
-            "update_cart_item",
+            "update_quantity",
             {"product_id": product_id, "new_quantity": quantity},
         )
         return build_cart_response(self._assemble(session.session_id))

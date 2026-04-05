@@ -75,3 +75,22 @@ class InMemoryWishlistStore:
 
     def clear(self, session_id: str) -> None:
         self._data[session_id] = []
+
+    def rebind_session(self, old_session_id: str, new_session_id: str) -> None:
+        """
+        Move wishlist items from old session to new session.
+        If both buckets exist, preserve uniqueness by product_id.
+        """
+        if old_session_id == new_session_id:
+            return
+
+        old_bucket = self._data.pop(old_session_id, None)
+        if not old_bucket:
+            return
+
+        new_bucket = self._bucket(new_session_id)
+        existing_product_ids = {item.product_id for item in new_bucket}
+        for old_item in old_bucket:
+            if old_item.product_id not in existing_product_ids:
+                new_bucket.append(old_item)
+                existing_product_ids.add(old_item.product_id)

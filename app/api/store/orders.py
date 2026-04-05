@@ -15,8 +15,9 @@ Promo codes: WELCOME10 (10% off), SAVE15 (15% off), FLAT100, FLAT200.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.forensics.tracker import track_event
 from app.models.store import Order, OrderListResponse, PlaceOrderRequest
 from app.repositories.base import AbstractOrderRepository
 from app.repositories.factory import get_order_repo, _get_session
@@ -31,6 +32,7 @@ router = APIRouter(prefix="/orders", tags=["store-orders"])
 
 @router.post("", response_model=Order, status_code=201)
 def place_order(
+    request: Request,
     body: PlaceOrderRequest,
     session: SessionState = Depends(_get_session),
     repo: AbstractOrderRepository = Depends(get_order_repo),
@@ -44,7 +46,27 @@ def place_order(
 
     Valid promo codes: WELCOME10, SAVE15, FLAT100, FLAT200
     """
-    return repo.place_order(session, body)
+    track_event(
+        request,
+        "checkout_start",
+        {
+            "promo_code": body.promo_code or None,
+            "shipping_city": body.shipping_address.city,
+            "shipping_state": body.shipping_address.state,
+        },
+    )
+
+    order = repo.place_order(session, body)
+    track_event(
+        request,
+        "checkout_complete",
+        {
+            "order_id": order.order_id,
+            "item_count": len(order.items),
+            "total": order.total,
+        },
+    )
+    return order
 
 
 # ---------------------------------------------------------------------------
@@ -53,11 +75,13 @@ def place_order(
 
 @router.get("", response_model=OrderListResponse)
 def list_orders(
+    request: Request,
     session: SessionState = Depends(_get_session),
     repo: AbstractOrderRepository = Depends(get_order_repo),
 ) -> OrderListResponse:
     """Return all past orders for this session, newest first."""
     orders = repo.list_orders(session)
+    track_event(request, "order_history_view", {"total_orders": len(orders)})
     return OrderListResponse(orders=orders, total=len(orders))
 
 
@@ -67,6 +91,7 @@ def list_orders(
 
 @router.get("/{order_id}", response_model=Order)
 def get_order(
+    request: Request,
     order_id: str,
     session: SessionState = Depends(_get_session),
     repo: AbstractOrderRepository = Depends(get_order_repo),
@@ -75,4 +100,5 @@ def get_order(
     order = repo.get_order(session, order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found.")
+    track_event(request, "order_detail_view", {"order_id": order_id})
     return order

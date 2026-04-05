@@ -1,32 +1,16 @@
 """
-PhantomShield – Decoy Order Repository
+PhantomShield decoy order repository.
 
-Structurally identical to RealOrderRepository.
-Key differences:
-  1. Reads from decoy_cart_store (fully isolated)
-  2. Reads from decoy product catalog
-  3. Stores in decoy_order_store (fully isolated)
-  4. Clears decoy_cart_store (never touches real cart)
-  5. Logs every step to forensics:
-       - checkout_attempt (on POST /orders)
-       - order_placed     (on successful order)
-
-The attacker sees a real-looking order confirmation.
-PhantomShield sees every action they took.
+Decoy checkout always provides a believable success path and logs
+high-value behavioral details for forensics.
 """
 
 from __future__ import annotations
 
+import random
 from datetime import datetime
 
-from fastapi import HTTPException
-
-from app.models.store import (
-    CartItem,
-    Order,
-    OrderItem,
-    PlaceOrderRequest,
-)
+from app.models.store import CartItem, Order, OrderItem, PlaceOrderRequest
 from app.repositories.base import AbstractOrderRepository
 from app.repositories.cart_utils import build_cart_response
 from app.repositories.decoy.product_repo import _load_products
@@ -40,7 +24,6 @@ from app.stores import decoy_cart_store, decoy_order_store
 
 
 def _assemble_decoy_cart_items(session_id: str) -> list[CartItem]:
-    """Read raw decoy cart items and join with decoy product catalog."""
     products = _load_products()
     raw_items = decoy_cart_store.get_items(session_id)
     assembled: list[CartItem] = []
@@ -63,13 +46,41 @@ def _assemble_decoy_cart_items(session_id: str) -> list[CartItem]:
     return assembled
 
 
-class DecoyOrderRepository(AbstractOrderRepository):
+def _build_fallback_cart_items() -> list[CartItem]:
+    """
+    Generate believable cart items when decoy checkout starts with an empty cart.
+    """
+    products = _load_products()
+    if not products:
+        return []
 
+    sample_size = random.randint(1, min(2, len(products)))
+    picked = random.sample(products, k=sample_size)
+    items: list[CartItem] = []
+    for index, product in enumerate(picked, start=1):
+        qty = random.randint(1, 2)
+        items.append(
+            CartItem(
+                cart_item_id=f"decoy-cart-{index}",
+                product_id=product.id,
+                name=product.name,
+                thumbnail=product.thumbnail,
+                price=product.price,
+                original_price=product.original_price,
+                quantity=qty,
+                subtotal=round(product.price * qty, 2),
+            )
+        )
+    return items
+
+
+class DecoyOrderRepository(AbstractOrderRepository):
     def __init__(self, session: SessionState) -> None:
         self._session = session
 
     def _log(self, action: str, payload: dict | None = None) -> None:
         from app.forensics.store_logger import log_store_event
+
         log_store_event(
             self._session,
             action=action,
@@ -77,12 +88,9 @@ class DecoyOrderRepository(AbstractOrderRepository):
             payload=payload,
         )
 
-    def place_order(
-        self, session: SessionState, request: PlaceOrderRequest
-    ) -> Order:
-        # Log checkout attempt before any validation
+    def place_order(self, session: SessionState, request: PlaceOrderRequest) -> Order:
         self._log(
-            "checkout_attempt",
+            "checkout_start",
             {
                 "shipping_city": request.shipping_address.city,
                 "shipping_state": request.shipping_address.state,
@@ -90,21 +98,16 @@ class DecoyOrderRepository(AbstractOrderRepository):
             },
         )
 
-        # 1. Build cart from decoy store
         cart_items = _assemble_decoy_cart_items(session.session_id)
+        fabricated = False
         if not cart_items:
-            raise HTTPException(
-                status_code=400,
-                detail="Your cart is empty. Add items before placing an order.",
-            )
+            cart_items = _build_fallback_cart_items()
+            fabricated = True
 
         cart = build_cart_response(cart_items)
-
-        # 2. Apply promo discount
         discount = resolve_promo_discount(request.promo_code, cart.subtotal)
         total = round(cart.subtotal - discount + cart.delivery_fee, 2)
 
-        # 3. Assemble order items
         order_items = [
             OrderItem(
                 product_id=item.product_id,
@@ -117,7 +120,6 @@ class DecoyOrderRepository(AbstractOrderRepository):
             for item in cart_items
         ]
 
-        # 4. Create decoy order
         order = Order(
             order_id=generate_order_id(),
             status="confirmed",
@@ -132,20 +134,17 @@ class DecoyOrderRepository(AbstractOrderRepository):
             placed_at=datetime.utcnow(),
         )
 
-        # 5. Persist in decoy store
         decoy_order_store.add_order(session.session_id, order)
-
-        # 6. Clear decoy cart
         decoy_cart_store.clear(session.session_id)
 
-        # 7. Log successful placement — HIGH-VALUE forensic event
         self._log(
-            "order_placed",
+            "checkout_complete",
             {
                 "order_id": order.order_id,
                 "item_count": len(order_items),
                 "total": order.total,
                 "discount": discount,
+                "fabricated_from_empty_cart": fabricated,
                 "items": [
                     {"product_id": i.product_id, "name": i.name, "qty": i.quantity}
                     for i in order_items
@@ -159,17 +158,34 @@ class DecoyOrderRepository(AbstractOrderRepository):
                 },
             },
         )
-
         return order
 
     def list_orders(self, session: SessionState) -> list[Order]:
         self._log("order_history_view")
-        return decoy_order_store.get_orders(session.session_id)
+        orders = decoy_order_store.get_orders(session.session_id)
+        if orders:
+            return orders
+
+        # If no orders exist yet, return believable decoy history.
+        fallback = self.place_order(
+            session,
+            PlaceOrderRequest(
+                shipping_address={
+                    "full_name": "A. Customer",
+                    "phone": "9999999999",
+                    "line1": "42 Market Street",
+                    "line2": "",
+                    "city": "Mumbai",
+                    "state": "Maharashtra",
+                    "pin": "400001",
+                },
+                delivery_note="",
+                promo_code="WELCOME10",
+            ),
+        )
+        return [fallback]
 
     def get_order(self, session: SessionState, order_id: str) -> Order | None:
         order = decoy_order_store.get_order(session.session_id, order_id)
-        self._log(
-            "order_detail_view",
-            {"order_id": order_id, "found": order is not None},
-        )
+        self._log("order_detail_view", {"order_id": order_id, "found": order is not None})
         return order
