@@ -167,7 +167,10 @@ export default function OpsOverviewPage() {
                             </td>
                             <td className="px-6 py-3"><ModeBadge mode={session.routing_state} /></td>
                             <td className="px-6 py-3 text-center"><RiskBadge score={session.risk_score} size="sm" /></td>
-                            <td className="px-6 py-3 text-xs text-gray-400">{new Date(session.created_at).toLocaleTimeString()}</td>
+                            <td className="px-6 py-3 text-xs text-gray-400">
+                               <p className="font-medium text-gray-300">{new Date(typeof session.last_activity === 'string' && !session.last_activity.endsWith('Z') ? session.last_activity + 'Z' : session.last_activity).toLocaleTimeString()}</p>
+                               <p className="text-[9px] uppercase mt-0.5">{session.status}</p>
+                            </td>
                             <td className="px-6 py-3 text-right">
                                <button className="rounded-lg p-2 text-gray-500 hover:text-cyan-400"><ExternalLink size={16} /></button>
                             </td>

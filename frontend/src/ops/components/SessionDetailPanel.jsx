@@ -42,7 +42,7 @@ function TimelineEvent({ event }) {
              <p className="mt-1 font-mono text-[10px] text-gray-500">{event.route}</p>
           </div>
           <span className="shrink-0 text-[10px] tabular-nums text-gray-500">
-            {new Date(event.timestamp).toLocaleTimeString()}
+            {new Date(typeof event.timestamp === 'string' && !event.timestamp.endsWith('Z') ? event.timestamp + 'Z' : event.timestamp).toLocaleTimeString()}
           </span>
         </div>
         

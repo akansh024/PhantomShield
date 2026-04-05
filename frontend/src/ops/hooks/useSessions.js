@@ -11,8 +11,8 @@ export function useSessions() {
     risk: "ALL", // ALL | HIGH | LOW
   });
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
     setError("");
     try {
       const params = {};
@@ -47,7 +47,8 @@ export function useSessions() {
     // Polling for the session table (slightly slower than summary)
     const timer = setInterval(() => {
       refresh();
-    }, 30000);
+    refresh(true);
+    }, 10000);
     
     return () => clearInterval(timer);
   }, [refresh]);
