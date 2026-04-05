@@ -60,9 +60,19 @@ export const adminApi = {
     });
     if (data.access_token) {
       localStorage.setItem("admin_token", data.access_token);
-      localStorage.setItem("admin_name", data.operator_name);
+      localStorage.setItem("admin_clearance", "verified");
+      if (data.operator_name) {
+        localStorage.setItem("admin_name", data.operator_name);
+      }
     }
     return data;
+  },
+
+  logout: () => {
+    localStorage.removeItem("admin_token");
+    localStorage.removeItem("admin_clearance");
+    localStorage.removeItem("admin_name");
+    window.location.href = "/";
   }
 };
 
