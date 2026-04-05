@@ -27,7 +27,9 @@ def test_public_decoy_routes_are_not_mounted() -> None:
 
 
 def test_suspicious_session_is_silently_routed_to_decoy() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     with TestClient(app) as client:
         response = client.get("/api/store/products?q=' OR '1'='1&page=999&limit=1")
@@ -36,7 +38,7 @@ def test_suspicious_session_is_silently_routed_to_decoy() -> None:
         session_id = client.cookies.get(COOKIE_SESSION_ID)
         assert session_id
 
-        session = session_store._sessions[session_id]  # noqa: SLF001 - test-only assertion
+        session = session_store.get_session(session_id)
         assert session.routing_state == "DECOY"
 
         first_body = response.json()
@@ -49,7 +51,9 @@ def test_suspicious_session_is_silently_routed_to_decoy() -> None:
 
 
 def test_real_and_decoy_share_identical_api_schema() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     real_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -73,7 +77,9 @@ def test_real_and_decoy_share_identical_api_schema() -> None:
 
 
 def test_decoy_login_returns_success_and_identity_cookie() -> None:
-    session_store._sessions.clear()  # noqa: SLF001 - test-only cleanup
+    coll = session_store._get_collection()
+    if coll is not None:
+        coll.delete_many({})
 
     suspicious_headers = {"User-Agent": "curl/8.5.0", "Accept": "*/*"}
 
@@ -101,5 +107,5 @@ def test_decoy_login_returns_success_and_identity_cookie() -> None:
         assert claims is not None
         assert claims["sid"] == session_id
 
-        session = session_store._sessions[session_id]  # noqa: SLF001 - test-only assertion
+        session = session_store.get_session(session_id)
         assert session.routing_state == "DECOY"
