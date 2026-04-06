@@ -8,10 +8,19 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/(api|auth|robots\\.txt|admin|backup|private|staging)/?(.*)",
-      "destination": "https://phantomshield-6u33.onrender.com/$1$2"
-    },
+    { "source": "/api", "destination": "https://phantomshield-6u33.onrender.com/api" },
+    { "source": "/api/(.*)", "destination": "https://phantomshield-6u33.onrender.com/api/$1" },
+    { "source": "/auth", "destination": "https://phantomshield-6u33.onrender.com/auth" },
+    { "source": "/auth/(.*)", "destination": "https://phantomshield-6u33.onrender.com/auth/$1" },
+    { "source": "/admin", "destination": "https://phantomshield-6u33.onrender.com/admin" },
+    { "source": "/admin/(.*)", "destination": "https://phantomshield-6u33.onrender.com/admin/$1" },
+    { "source": "/backup", "destination": "https://phantomshield-6u33.onrender.com/backup" },
+    { "source": "/backup/(.*)", "destination": "https://phantomshield-6u33.onrender.com/backup/$1" },
+    { "source": "/private", "destination": "https://phantomshield-6u33.onrender.com/private" },
+    { "source": "/private/(.*)", "destination": "https://phantomshield-6u33.onrender.com/private/$1" },
+    { "source": "/staging", "destination": "https://phantomshield-6u33.onrender.com/staging" },
+    { "source": "/staging/(.*)", "destination": "https://phantomshield-6u33.onrender.com/staging/$1" },
+    { "source": "/robots.txt", "destination": "https://phantomshield-6u33.onrender.com/robots.txt" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
