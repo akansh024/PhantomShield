@@ -1,8 +1,10 @@
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 // Assume it shares the same base URL structure and token as adminApi
 const dashboardClient = axios.create({
-  baseURL: "/api/dashboard/",
+  baseURL: `${API_BASE}/api/dashboard/`,
   withCredentials: true,
   timeout: 12000,
 });

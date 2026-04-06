@@ -6,7 +6,8 @@
  * The frontend has NO knowledge of real vs decoy mode.
  */
 
-const BASE = '/api/store';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const BASE = `${API_BASE}/api/store`;
 
 async function request(method, path, body = null) {
   const opts = {

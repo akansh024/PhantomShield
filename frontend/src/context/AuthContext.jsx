@@ -3,8 +3,10 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 const authApi = axios.create({
-  baseURL: '/api/auth',
+  baseURL: `${API_BASE}/api/auth`,
   withCredentials: true,
 });
 
