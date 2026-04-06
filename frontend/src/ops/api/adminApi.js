@@ -6,8 +6,10 @@ import {
   normalizeSummary,
 } from "../contracts/adminContracts";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 const adminClient = axios.create({
-  baseURL: "/api/admin/",
+  baseURL: `${API_BASE}/api/admin/`,
   withCredentials: true,
   timeout: 12000,
 });

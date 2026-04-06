@@ -39,6 +39,8 @@ app.add_middleware(DecoyRealismMiddleware)
 app.add_middleware(SessionRoutingMiddleware)
 app.add_middleware(StoreSessionMiddleware)
 
+import os
+
 # CORS MUST BE OUTERMOST to handle preflight requests correctly
 app.add_middleware(
     CORSMiddleware,
@@ -47,7 +49,9 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        os.getenv("FRONTEND_URL", "https://phantomshield.vercel.app"),
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

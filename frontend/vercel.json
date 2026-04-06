@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(api|auth|robots\\.txt|admin|backup|private|staging)/?(.*)",
+      "destination": "https://phantomshield-6u33.onrender.com/$1$2"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
