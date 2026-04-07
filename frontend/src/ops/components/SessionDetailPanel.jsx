@@ -83,7 +83,7 @@ export default function SessionDetailPanel({ session, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl border-l border-white/10 bg-[#070b17] shadow-2xl animate-in slide-in-from-right duration-300">
+    <div className="fixed top-16 bottom-0 right-0 z-50 w-full max-w-2xl border-l border-white/10 bg-[#070b17] shadow-2xl animate-in slide-in-from-right duration-300">
       <div className="flex h-full flex-col">
         <header className="flex items-center justify-between border-b border-white/10 p-6 bg-[#0f1426]">
           <div className="flex items-center gap-4">
