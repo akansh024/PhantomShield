@@ -58,7 +58,11 @@ def _heuristic_risk(request: Request) -> float:
 
 class StoreSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
-        if not any(request.url.path.startswith(prefix) for prefix in _TRACKED_PREFIXES):
+        path = request.url.path
+        if path == "/api/admin/login":
+            return await call_next(request)
+
+        if not any(path.startswith(prefix) for prefix in _TRACKED_PREFIXES):
             return await call_next(request)
 
         incoming_session_id = request.cookies.get(COOKIE_SESSION_ID)

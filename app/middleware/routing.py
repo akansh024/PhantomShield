@@ -33,7 +33,11 @@ def _should_track_request(path: str) -> bool:
 
 class SessionRoutingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
-        if not _should_track_request(request.url.path):
+        path = request.url.path
+        if path == "/api/admin/login":
+            return await call_next(request)
+
+        if not _should_track_request(path):
             return await call_next(request)
 
         session = getattr(request.state, "session", None)
