@@ -1,13 +1,6 @@
-import axios from "axios";
+import { createApiClient, requestWithRetry, toApiError } from "./httpClient";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-
-// Assume it shares the same base URL structure and token as adminApi
-const dashboardClient = axios.create({
-  baseURL: `${API_BASE}/api/dashboard/`,
-  withCredentials: true,
-  timeout: 12000,
-});
+const dashboardClient = createApiClient("/api/dashboard", { timeout: 30000 });
 
 dashboardClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("admin_token");
@@ -18,13 +11,19 @@ dashboardClient.interceptors.request.use((config) => {
 });
 
 async function request(method, path, { params, data } = {}) {
-  const response = await dashboardClient.request({
-    method,
-    url: path,
-    params,
-    data,
-  });
-  return response.data;
+  return requestWithRetry(
+    dashboardClient,
+    {
+      method,
+      url: path,
+      params,
+      data,
+    },
+    {
+      retries: 1,
+      retryDelayMs: 1000,
+    },
+  );
 }
 
 export const dashboardApi = {
@@ -35,6 +34,4 @@ export const dashboardApi = {
   getSessionDetails: async (sessionId) => await request("GET", `session/${encodeURIComponent(sessionId)}`),
 };
 
-export function toApiError(error, fallback = "Request failed") {
-  return error?.response?.data?.detail || error?.message || fallback;
-}
+export { toApiError };

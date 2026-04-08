@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, X, Terminal, Key, User } from 'lucide-react';
-import { adminApi } from '../../ops/api/adminApi';
+import { adminApi, toApiError } from '../../ops/api/adminApi';
 
 export default function AdminLoginModal({ isOpen, onClose }) {
   const [operatorName, setOperatorName] = useState('');
   const [operatorId, setOperatorId] = useState('');
   const [passcode, setPasscode] = useState('');
-  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(false);
+    setErrorMessage('');
     
     try {
       const response = await adminApi.login(operatorId, passcode);
@@ -27,10 +27,10 @@ export default function AdminLoginModal({ isOpen, onClose }) {
         navigate('/dashboard');
         onClose();
       } else {
-        setError(true);
+        setErrorMessage('Authentication failed. Verify operator credentials and retry.');
       }
     } catch (err) {
-      setError(true);
+      setErrorMessage(toApiError(err, 'Unable to reach login API. Please retry.'));
       setPasscode('');
     } finally {
       setLoading(false);
@@ -87,14 +87,14 @@ export default function AdminLoginModal({ isOpen, onClose }) {
                 
                 {/* Error Banner */}
                 <AnimatePresence>
-                  {error && (
+                  {Boolean(errorMessage) && (
                     <motion.div 
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-['JetBrains_Mono'] uppercase tracking-widest text-center rounded-sm"
                     >
-                      Authentication Failed
+                      {errorMessage}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -106,7 +106,7 @@ export default function AdminLoginModal({ isOpen, onClose }) {
                     required
                     placeholder="Operator Name"
                     value={operatorName}
-                    onChange={(e) => { setOperatorName(e.target.value); setError(false); }}
+                    onChange={(e) => { setOperatorName(e.target.value); setErrorMessage(''); }}
                     className="w-full bg-black/20 border border-white/5 rounded-md py-2.5 pl-9 pr-4 text-sm text-white placeholder-white/20 focus:border-[#00ffaa] focus:ring-1 focus:ring-[#00ffaa]/50 focus:outline-none transition-all font-['JetBrains_Mono']"
                   />
                 </div>
@@ -118,7 +118,7 @@ export default function AdminLoginModal({ isOpen, onClose }) {
                     required
                     placeholder="Operator ID"
                     value={operatorId}
-                    onChange={(e) => { setOperatorId(e.target.value); setError(false); }}
+                    onChange={(e) => { setOperatorId(e.target.value); setErrorMessage(''); }}
                     className="w-full bg-black/20 border border-white/5 rounded-md py-2.5 pl-9 pr-4 text-sm text-white placeholder-white/20 focus:border-[#00ffaa] focus:ring-1 focus:ring-[#00ffaa]/50 focus:outline-none transition-all font-['JetBrains_Mono']"
                   />
                 </div>
@@ -130,7 +130,7 @@ export default function AdminLoginModal({ isOpen, onClose }) {
                     required
                     placeholder="Passcode"
                     value={passcode}
-                    onChange={(e) => { setPasscode(e.target.value); setError(false); }}
+                    onChange={(e) => { setPasscode(e.target.value); setErrorMessage(''); }}
                     className="w-full bg-black/20 border border-white/5 rounded-md py-2.5 pl-9 pr-4 text-sm text-white placeholder-white/20 focus:border-[#00ffaa] focus:ring-1 focus:ring-[#00ffaa]/50 focus:outline-none transition-all font-['JetBrains_Mono']"
                   />
                 </div>

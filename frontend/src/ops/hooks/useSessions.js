@@ -46,8 +46,7 @@ export function useSessions() {
     
     // Polling for the session table (slightly slower than summary)
     const timer = setInterval(() => {
-      refresh();
-    refresh(true);
+      refresh(true);
     }, 10000);
     
     return () => clearInterval(timer);
