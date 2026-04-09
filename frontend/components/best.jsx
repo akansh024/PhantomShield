@@ -406,7 +406,7 @@ function AuditCard({ inView }) {
               >
                 The Proof of
                 <span style={{
-                  WebkitTextStroke: "1.5px rgba(34,211,238,0.7)",
+                  WebkitTextStroke: "1.5px rgba(0,255,170,0.8)",
                   WebkitTextFillColor: "transparent",
                   marginLeft: "0.18em",
                 }}>
@@ -564,10 +564,6 @@ export default function PerformanceAudit() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 
-        @keyframes breathe {
-          0%,100%{ opacity:.05; transform:scale(1); }
-          50%    { opacity:.1;  transform:scale(1.04); }
-        }
         @keyframes liveRipple {
           0%  { transform:scale(1);   opacity:.4; }
           100%{ transform:scale(3.2); opacity:0; }
@@ -575,42 +571,51 @@ export default function PerformanceAudit() {
       `}</style>
 
       <section
-        className="relative overflow-hidden"
-        style={{ background: "linear-gradient(180deg,#030a10 0%,#020810 100%)" }}
+        className="relative overflow-hidden isolate"
+        style={{ background: "linear-gradient(160deg, #030a10 0%, #020810 60%, #040c14 100%)" }}
       >
         {/* 40px grid */}
-        <div className="absolute inset-0 pointer-events-none"
+        <div className="absolute inset-0 pointer-events-none z-0"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(34,211,238,0.02) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(34,211,238,0.02) 1px, transparent 1px)`,
+              linear-gradient(rgba(34,211,238,0.022) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(34,211,238,0.022) 1px, transparent 1px)`,
             backgroundSize: "40px 40px",
           }}
         />
 
         {/* Section-wide grain */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
-          style={{ backgroundImage: GRAIN, backgroundSize: "220px", mixBlendMode: "overlay" }}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.032] z-0"
+          style={{ backgroundImage: GRAIN, backgroundSize: "200px", mixBlendMode: "overlay" }}
         />
 
         {/* Deep centre radial — draws focus */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0"
           style={{
-            width: 1000, height: 700,
-            background: "radial-gradient(ellipse at 50% 30%, rgba(34,211,238,0.055) 0%, transparent 65%)",
-            animation: "breathe 12s ease-in-out infinite",
+            width: 900, height: 600,
+            background: "radial-gradient(ellipse, rgba(34,211,238,0.055) 0%, transparent 65%)",
           }}
         />
-        <div className="absolute bottom-0 right-0 pointer-events-none"
+        <div className="absolute -bottom-24 -right-24 w-[500px] h-[500px] rounded-full pointer-events-none z-0"
           style={{
-            width: 600, height: 600,
-            background: "radial-gradient(ellipse at 100% 100%, rgba(167,139,250,0.035) 0%, transparent 60%)",
-            animation: "breathe 18s ease-in-out infinite 6s",
+            background: "radial-gradient(ellipse, rgba(167,139,250,0.03) 0%, transparent 60%)",
           }}
         />
 
         {/* ── HEADER ── */}
-        <div ref={hRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pt-28 pb-14">
+        <div className="absolute -top-24 -left-24 w-[500px] h-[500px] rounded-full pointer-events-none z-0"
+          style={{
+            background: "radial-gradient(ellipse, rgba(34,211,238,0.035) 0%, transparent 60%)",
+          }}
+        />
+        <motion.div
+          className="absolute left-0 right-0 h-px z-0"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.25), transparent)" }}
+          animate={{ top: ["0%", "100%"] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        />
+
+        <div ref={hRef} className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 pt-28 pb-14">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={hV ? { opacity: 1, y: 0 } : {}}
@@ -656,12 +661,12 @@ export default function PerformanceAudit() {
         </div>
 
         {/* ── HERO AUDIT CARD ── */}
-        <div className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-14">
+        <div className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 pb-14">
           <AuditCard inView={hV} />
         </div>
 
         {/* ── 8-STAT GRID ── */}
-        <div ref={sRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-20">
+        <div ref={sRef} className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 pb-20">
           <div className="flex items-center gap-3 mb-8">
             <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.22em] text-white/22 uppercase">
               Detailed Metrics
@@ -681,7 +686,7 @@ export default function PerformanceAudit() {
 
 
         {/* ── WORKFLOW TRINITY ── */}
-        <div ref={tRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-32">
+        <div ref={tRef} className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 pb-32">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={tV ? { opacity: 1, y: 0 } : {}}
