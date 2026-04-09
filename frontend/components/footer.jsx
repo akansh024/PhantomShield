@@ -147,11 +147,15 @@ function SystemClock() {
   }, []);
 
   const pad = (n) => String(n).padStart(2, "0");
-  const timeStr = `${pad(time.getUTCHours())}:${pad(time.getUTCMinutes())}:${pad(time.getUTCSeconds())}`;
+  const timeStr = `${pad(time.getHours())}:${pad(time.getMinutes())}:${pad(time.getSeconds())}`;
+  const timeZoneLabel =
+    new Intl.DateTimeFormat("en-US", { timeZoneName: "short" })
+      .formatToParts(time)
+      .find((part) => part.type === "timeZoneName")?.value || "LOCAL";
   return (
     <span className="font-['JetBrains_Mono'] tabular-nums"
       style={{ fontSize: 10, letterSpacing: "0.12em", color: "rgba(34,211,238,0.5)" }}>
-      {timeStr} UTC
+      {timeStr} {timeZoneLabel}
     </span>
   );
 }
