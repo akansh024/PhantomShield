@@ -421,9 +421,6 @@ export default function HowItWorks() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
 
-        @keyframes gridGlow {
-          0%,100%{ opacity:.022; } 50%{ opacity:.04; }
-        }
         @keyframes liveRipple {
           0%  { transform:scale(1);   opacity:.4; }
           100%{ transform:scale(3);   opacity:0; }
@@ -432,22 +429,21 @@ export default function HowItWorks() {
 
       <section
         ref={containerRef}
-        className="relative overflow-hidden"
-        style={{ background: "linear-gradient(180deg, #030a10 0%, #020810 100%)" }}
+        className="relative overflow-hidden isolate"
+        style={{ background: "linear-gradient(160deg, #030a10 0%, #020810 60%, #040c14 100%)" }}
       >
         {/* Grid bg */}
-        <div className="absolute inset-0 pointer-events-none"
+        <div className="absolute inset-0 pointer-events-none z-0"
           style={{
             backgroundImage: `
               linear-gradient(rgba(34,211,238,0.022) 1px, transparent 1px),
               linear-gradient(90deg, rgba(34,211,238,0.022) 1px, transparent 1px)`,
             backgroundSize: "40px 40px",
-            animation: "gridGlow 8s ease-in-out infinite",
           }}
         />
 
         {/* Grain */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-0"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
             backgroundSize: "200px",
@@ -456,12 +452,24 @@ export default function HowItWorks() {
         />
 
         {/* Glow blobs */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none"
-          style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.045) 0%, transparent 65%)" }}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none z-0"
+          style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.055) 0%, transparent 65%)" }}
+        />
+        <div className="absolute -top-24 -left-24 w-[500px] h-[500px] rounded-full pointer-events-none z-0"
+          style={{ background: "radial-gradient(ellipse, rgba(34,211,238,0.035) 0%, transparent 60%)" }}
+        />
+        <div className="absolute -bottom-24 -right-24 w-[500px] h-[500px] rounded-full pointer-events-none z-0"
+          style={{ background: "radial-gradient(ellipse, rgba(167,139,250,0.03) 0%, transparent 60%)" }}
+        />
+        <motion.div
+          className="absolute left-0 right-0 h-px z-0"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(34,211,238,0.25), transparent)" }}
+          animate={{ top: ["0%", "100%"] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
         />
 
         {/* ── HEADER ── */}
-        <div ref={hRef} className="max-w-[88rem] mx-auto px-6 sm:px-10 pt-28 pb-20">
+        <div ref={hRef} className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 pt-28 pb-20">
           {/* Overline */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -497,7 +505,7 @@ export default function HowItWorks() {
             >
               THE
               <span style={{
-                WebkitTextStroke: "1.5px rgba(34,211,238,0.65)",
+                WebkitTextStroke: "1.5px rgba(0,255,170,0.8)",
                 WebkitTextFillColor: "transparent",
                 marginLeft: "0.18em",
               }}>
@@ -538,7 +546,7 @@ export default function HowItWorks() {
         </div>
 
         {/* ── STEPS ── */}
-        <div className="max-w-[88rem] mx-auto px-6 sm:px-10 pb-32">
+        <div className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 pb-32">
           {/* Outer spine background (desktop only) */}
           <div className="hidden lg:block absolute left-1/2 -translate-x-1/2"
             style={{
@@ -559,51 +567,6 @@ export default function HowItWorks() {
             ))}
           </div>
         </div>
-
-        {/* ── BOTTOM RULE ── */}
-        <div className="max-w-[88rem] mx-auto px-10 pb-24">
-          <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            whileInView={{ opacity: 1, scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="origin-left"
-          >
-            <div className="flex items-center gap-5 p-6 border border-white/[0.07]
-              backdrop-blur-xl bg-white/[0.02]">
-              <div className="flex flex-col gap-0.5">
-                <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.22em]
-                  text-cyan-400/45 uppercase">
-                  Design Standard
-                </span>
-                <span className="font-['Space_Grotesk'] font-semibold text-[15px]
-                  tracking-tight text-white/65">
-                  "Escalation is one-way. Isolation is structural. Deception is architectural."
-                </span>
-              </div>
-              <div className="ml-auto flex-shrink-0 flex items-center gap-3">
-                <div className="flex gap-3">
-                  {[
-                    { label: "8", sub: "Stages" },
-                    { label: "0", sub: "Reversals" },
-                    { label: "∞", sub: "Deception TTL" },
-                  ].map((s) => (
-                    <div key={s.sub} className="text-right">
-                      <div className="font-['Space_Grotesk'] font-bold text-xl tracking-tight text-cyan-400 leading-none">
-                        {s.label}
-                      </div>
-                      <div className="font-['JetBrains_Mono'] text-[7px] tracking-[0.14em]
-                        text-white/22 uppercase mt-1">
-                        {s.sub}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
       </section>
     </>
   );
