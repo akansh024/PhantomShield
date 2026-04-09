@@ -7,6 +7,8 @@ import {
   Terminal, Wifi, Server, Globe, ChevronRight, User, LogOut, ChevronDown
 } from "lucide-react";
 
+const MotionLink = motion(Link);
+
 
 /* ─── THREAT LOG DATA ────────────────────────────────────── */
 const LOGS = [
@@ -107,12 +109,12 @@ function Navbar({ onAdminTrigger }) {
                 fill="rgba(34,211,238,0.1)" stroke="rgba(34,211,238,0.65)" strokeWidth="1"/>
               <path d="M16 8L24 11.5V18C24 23 20 27 16 28C12 27 8 23 8 18V11.5L16 8z"
                 fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.3)" strokeWidth="0.8"/>
-              <circle cx="16" cy="18" r="3.5" fill="rgba(34,211,238,0.9)"/>
+              {/* <circle cx="16" cy="18" r="3.5" fill="rgba(34,211,238,0.9)"/> */}
             </svg>
           </div>
           <div className="flex flex-col leading-none gap-[6px]">
-            <span className="font-['JetBrains_Mono'] text-[10px] tracking-[0.2em] text-cyan-400">PHANTOM</span>
-            <span className="font-['JetBrains_Mono'] text-[10px] tracking-[0.2em] text-white/55 -mt-0.5">SHIELD</span>
+            <span className="font-['JetBrains_Mono'] text-[15px] tracking-[0.2em] text-cyan-400">PHANTOM</span>
+            <span className="font-['JetBrains_Mono'] text-[15px] tracking-[0.2em] text-white/55 -mt-0.5">SHIELD</span>
           </div>
         </div>
 
@@ -120,18 +122,26 @@ function Navbar({ onAdminTrigger }) {
         <div className="hidden md:flex items-center gap-8">
           {["Architecture", "Capabilities", "Docs"].map((item) => (
             <a key={item} href="#"
-              className="font-['JetBrains_Mono'] text-[12px] tracking-[0.1em] text-white/50 hover:text-white uppercase transition-colors duration-200">
+              className="font-['JetBrains_Mono'] text-[15px] tracking-[0.1em] text-white/50 hover:text-white uppercase transition-colors duration-200">
               {item}
             </a>
           ))}
         </div>
 
         {/* CTA */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 ">
           {!userSession ? (
-            <Link to="/signup" className="hidden sm:flex items-center gap-2 font-['Space_Grotesk'] font-bold text-[12px] tracking-tight text-white/70 hover:text-white transition-colors duration-200">
+            <MotionLink
+              to="/signup"
+              whileHover={{ borderColor: "rgba(34,211,238,0.45)", background: "rgba(34,211,238,0.06)" }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2.5 font-['Space_Grotesk'] font-semibold
+                text-[13px] tracking-[0.1rem] uppercase px-7 py-[12px]
+                backdrop-blur-xl bg-white/[0.03] border border-white/[0.12]
+                text-white/50 hover:text-white hover:bg-white/10 transition-all duration-200 cursor-pointer rounded-md"
+            >
               Sign Up
-            </Link>
+            </MotionLink>
           ) : (
             <div className="relative">
               <button 
@@ -164,7 +174,7 @@ function Navbar({ onAdminTrigger }) {
             </div>
           )}
 
-          <button onClick={onAdminTrigger} className="hidden sm:flex items-center gap-2 font-['Space_Grotesk'] font-bold text-[12px] tracking-tight
+          <button onClick={onAdminTrigger} className="hidden sm:flex items-center gap-2 font-['Space_Grotesk'] font-bold text-[15px] tracking-tight
             px-5 py-2.5 bg-[#00ffaa] text-[#13141a] uppercase rounded-sm hover:shadow-[0_0_20px_rgba(0,255,170,0.35)]
             hover:-translate-y-px transition-all duration-200 cursor-pointer border-0">
             Dashboard
@@ -362,7 +372,7 @@ function TerminalCard() {
               shadow-[0_4px_16px_rgba(0,0,0,0.5)]`}
           >
             <span className={chip.color}>{chip.icon}</span>
-            <span className={`font-['JetBrains_Mono'] text-[8px] tracking-[0.12em] ${chip.color}`}>
+            <span className={`font-['JetBrains_Mono'] text-[12px] tracking-[0.12em] ${chip.color}`}>
               {chip.label}
             </span>
           </motion.div>
@@ -412,9 +422,9 @@ export default function HeroSection({ onAdminTrigger }) {
                     System Status: Active
                   </span>
                 </div>
-                <div className="h-px w-16 bg-gradient-to-r from-cyan-400/30 to-transparent"/>
-                <span className="font-['JetBrains_Mono'] text-[8px] tracking-[0.2em] text-white/25 uppercase">
-                  v1.0 · Production
+                {/* <div className="h-px w-16 bg-gradient-to-r from-cyan-400/30 to-transparent"/> */}
+                <span className="font-['JetBrains_Mono'] text-[10px] tracking-[0.2em] text-white/25 uppercase">
+                  v1.0 · Demo
                 </span>
               </motion.div>
 
@@ -482,9 +492,9 @@ export default function HeroSection({ onAdminTrigger }) {
                   whileHover={{ borderColor: "rgba(34,211,238,0.45)", background: "rgba(34,211,238,0.06)" }}
                   whileTap={{ scale: 0.98 }}
                   className="flex items-center gap-2.5 font-['Space_Grotesk'] font-semibold
-                    text-[13px] tracking-tight uppercase px-7 py-[14px]
+                    text-[13px] hover:text-white tracking-[0.01rem] uppercase px-7 py-[17px]
                     backdrop-blur-xl bg-white/[0.03] border border-white/[0.12]
-                    text-white/55 transition-all duration-200 cursor-pointer"
+                    text-white/55 transition-all duration-200 cursor-pointer rounded-md"
                 >
                   <FileText size={13} strokeWidth={1.8}/>
                   View Documentation
