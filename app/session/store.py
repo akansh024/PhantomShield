@@ -80,6 +80,8 @@ class MongoSessionStore:
             "created_at": state.created_at,
             "last_activity": state.last_activity,
             "user_name": state.user_name,
+            "user_email": state.user_email,
+            "is_test": state.is_test,
             "flags": state.flags,
         }
 
@@ -92,6 +94,8 @@ class MongoSessionStore:
             created_at=doc.get("created_at", datetime.utcnow()),
             last_activity=doc.get("last_activity", datetime.utcnow()),
             user_name=doc.get("user_name"),
+            user_email=doc.get("user_email"),
+            is_test=doc.get("is_test", False),
             flags=doc.get("flags", {}),
         )
 
@@ -173,6 +177,8 @@ class MongoSessionStore:
                 created_at=old_state.created_at,
                 last_activity=datetime.utcnow(),
                 user_name=old_state.user_name,
+                user_email=old_state.user_email,
+                is_test=old_state.is_test,
                 flags=old_state.flags.copy(),
             )
 

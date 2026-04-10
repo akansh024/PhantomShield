@@ -97,14 +97,16 @@ class MongoAdminRepository:
         active_threshold = now - timedelta(minutes=15)
 
         # 1. Session counts
-        total_sessions = sessions_coll.count_documents({})
-        active_sessions = sessions_coll.count_documents({"last_activity": {"$gt": active_threshold}})
-        real_sessions = sessions_coll.count_documents({"routing_state": "REAL"})
-        decoy_sessions = sessions_coll.count_documents({"routing_state": "DECOY"})
-        suspicious_sessions = sessions_coll.count_documents({"risk_score": {"$gte": 0.60}})
+        base_filter = {"is_test": {"$ne": True}}
+        total_sessions = sessions_coll.count_documents(base_filter)
+        active_sessions = sessions_coll.count_documents({**base_filter, "last_activity": {"$gt": active_threshold}})
+        real_sessions = sessions_coll.count_documents({**base_filter, "routing_state": "REAL"})
+        decoy_sessions = sessions_coll.count_documents({**base_filter, "routing_state": "DECOY"})
+        suspicious_sessions = sessions_coll.count_documents({**base_filter, "risk_score": {"$gte": 0.60}})
 
         # 2. Avg risk score
         avg_risk_pipeline = [
+            {"$match": {"is_test": {"$ne": True}}},
             {"$group": {"_id": None, "avg_risk": {"$avg": "$risk_score"}}}
         ]
         avg_risk_result = list(sessions_coll.aggregate(avg_risk_pipeline))
@@ -118,6 +120,7 @@ class MongoAdminRepository:
         
         # Risk buckets: 0.0-0.2, 0.2-0.4, 0.4-0.6, 0.6-0.8, 0.8-1.0
         risk_pipeline = [
+            {"$match": {"is_test": {"$ne": True}}},
             {"$project": {
                 "bucket": {
                     "$switch": {
@@ -164,7 +167,7 @@ class MongoAdminRepository:
         )
 
     def get_sessions(
-        self, limit: int = 50, skip: int = 0, routing_state: str | None = None, min_risk: float | None = None
+        self, limit: int = 50, skip: int = 0, routing_state: str | None = None, min_risk: float | None = None, filter_mode: str = "live"
     ) -> list[SessionRecord]:
         collections = self._get_collections()
         if not collections:
@@ -173,10 +176,33 @@ class MongoAdminRepository:
         sessions_coll = collections["sessions"]
         query: dict[str, Any] = {}
 
+        now = datetime.utcnow()
+        active_threshold = now - timedelta(minutes=15)
+
+        if filter_mode == "test":
+            query["is_test"] = True
+        elif filter_mode == "ALL":
+            pass
+        else:
+            query["is_test"] = {"$ne": True}
+            if filter_mode == "live":
+                query["last_activity"] = {"$gt": active_threshold}
+            elif filter_mode == "logged_in":
+                query["user_id"] = {"$ne": None}
+            elif filter_mode == "guest":
+                query["user_id"] = None
+            elif filter_mode == "suspicious":
+                query["risk_score"] = {"$gte": 0.6}
+            elif filter_mode == "historical":
+                query["last_activity"] = {"$lte": active_threshold}
+
         if routing_state:
             query["routing_state"] = routing_state
         if min_risk is not None:
-            query["risk_score"] = {"$gte": min_risk}
+            if "risk_score" in query and isinstance(query["risk_score"], dict):
+                query["risk_score"]["$gte"] = max(query["risk_score"].get("$gte", 0), min_risk)
+            else:
+                query["risk_score"] = {"$gte": min_risk}
 
         cursor = sessions_coll.find(query).sort("last_activity", DESCENDING).skip(skip).limit(limit)
         
@@ -195,6 +221,9 @@ class MongoAdminRepository:
             results.append(SessionRecord(
                 session_id=doc["session_id"],
                 user_id=doc.get("user_id"),
+                user_name=doc.get("user_name"),
+                user_email=doc.get("user_email"),
+                is_test=doc.get("is_test", False),
                 routing_state=doc.get("routing_state", "REAL"),
                 risk_score=doc.get("risk_score", 0.0),
                 created_at=doc["created_at"],
@@ -290,7 +319,7 @@ class MongoAdminRepository:
         twelve_hours_ago = datetime.utcnow() - timedelta(hours=12)
         
         pipeline = [
-            {"$match": {"last_activity": {"$gt": twelve_hours_ago}}},
+            {"$match": {"last_activity": {"$gt": twelve_hours_ago}, "is_test": {"$ne": True}}},
             {"$project": {
                 "user_id": 1,
                 "hour": {
@@ -341,13 +370,13 @@ class MongoAdminRepository:
         # Orders documents are single orders.
         # Wishlist documents are single product_ids per session.
         return {
-            "total_sessions": sessions.count_documents({}),
-            "active_sessions": sessions.count_documents({"last_activity": {"$gt": now - timedelta(minutes=15)}}),
+            "total_sessions": sessions.count_documents({"is_test": {"$ne": True}}),
+            "active_sessions": sessions.count_documents({"is_test": {"$ne": True}, "last_activity": {"$gt": now - timedelta(minutes=15)}}),
             "total_orders": orders_coll.count_documents({}),
             "total_cart_items": cart_coll.count_documents({}),
             "total_wishlist_items": wishlist_coll.count_documents({}),
-            "suspicious_sessions": sessions.count_documents({"risk_score": {"$gte": 0.60}}),
-            "decoy_sessions": sessions.count_documents({"routing_state": "DECOY"})
+            "suspicious_sessions": sessions.count_documents({"is_test": {"$ne": True}, "risk_score": {"$gte": 0.60}}),
+            "decoy_sessions": sessions.count_documents({"is_test": {"$ne": True}, "routing_state": "DECOY"})
         }
 
     def get_dashboard_session_trends(self) -> list[dict[str, Any]]:
@@ -356,7 +385,7 @@ class MongoAdminRepository:
         
         twelve_hours_ago = datetime.utcnow() - timedelta(hours=12)
         pipeline = [
-            {"$match": {"last_activity": {"$gt": twelve_hours_ago}}},
+            {"$match": {"last_activity": {"$gt": twelve_hours_ago}, "is_test": {"$ne": True}}},
             {"$group": {
                 "_id": {
                     "$dateTrunc": {"date": "$last_activity", "unit": "minute", "binSize": 15}
@@ -400,7 +429,7 @@ class MongoAdminRepository:
         
         # Top suspicious sessions
         suspicious = list(sessions.find(
-            {"risk_score": {"$gte": 0.50}},
+            {"risk_score": {"$gte": 0.50}, "is_test": {"$ne": True}},
             {"session_id": 1, "risk_score": 1, "routing_state": 1, "last_activity": 1}
         ).sort("risk_score", -1).limit(5))
         
@@ -439,6 +468,9 @@ class MongoAdminRepository:
         return {
             "session_id": session["session_id"],
             "user_id": session.get("user_id"),
+            "user_name": session.get("user_name"),
+            "user_email": session.get("user_email"),
+            "is_test": session.get("is_test", False),
             "mode": session.get("routing_state", "REAL"),
             "risk_score": session.get("risk_score", 0.0),
             "timeline": timeline,

@@ -35,6 +35,9 @@ class ActionEvent(BaseModel):
 class SessionDetails(BaseModel):
     session_id: str
     user_id: str | None = None
+    user_name: str | None = None
+    user_email: str | None = None
+    is_test: bool = False
     mode: str
     risk_score: float
     timeline: list[ActionEvent]

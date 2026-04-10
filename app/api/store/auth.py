@@ -147,6 +147,7 @@ async def login(
         )
         new_session.user_id = fake_user_id
         new_session.user_name = email.split("@")[0].capitalize()
+        new_session.user_email = email
         request.state.session = new_session
 
         token = create_identity_token(
@@ -186,6 +187,7 @@ async def login(
     )
     new_session.user_id = user_id
     new_session.user_name = user_name
+    new_session.user_email = email
     request.state.session = new_session
 
     token = create_identity_token(

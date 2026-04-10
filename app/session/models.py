@@ -21,13 +21,14 @@ RoutingState = Literal["REAL", "DECOY"]
 class SessionState:
     session_id: str
     user_id: Optional[str] = None
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+    is_test: bool = False
+    
     routing_state: RoutingState = "REAL"
     risk_score: float = 0.0
     created_at: datetime = field(default_factory=datetime.utcnow)
     last_activity: datetime = field(default_factory=datetime.utcnow)
-
-    # Optional identity/profile extensions (used by auth responses).
-    user_name: Optional[str] = None
 
     # Optional server-side flags used by risk/policy modules.
     flags: dict[str, bool] = field(default_factory=dict)

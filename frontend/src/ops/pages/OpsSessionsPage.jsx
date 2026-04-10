@@ -23,6 +23,23 @@ export default function OpsSessionsPage() {
     setIsPanelOpen(true);
   };
 
+  const displayUserIdentity = (session) => {
+    if (session.user_email || session.user_name) {
+      return (
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-white truncate max-w-[150px]">{session.user_name || session.user_email.split("@")[0]}</p>
+          <p className="text-[10px] text-gray-500 font-mono">{session.user_email || session.session_id}</p>
+        </div>
+      );
+    }
+    return (
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-400 truncate max-w-[150px]">Guest User</p>
+        <p className="text-[10px] text-gray-600 font-mono italic">{session.session_id}</p>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
@@ -37,30 +54,44 @@ export default function OpsSessionsPage() {
 
           <div className="flex flex-wrap items-center gap-3">
              {/* Search */}
-             <div className="relative group min-w-[240px]">
+             <div className="relative group min-w-[200px]">
                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
                <input 
                  type="text"
-                 placeholder="Search Session or User ID..."
+                 placeholder="Search ID or Email..."
                  value={filters.search}
                  onChange={(e) => updateFilters({ search: e.target.value })}
                  className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white focus:border-cyan-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all"
                />
              </div>
 
-             {/* Mode Filter */}
+             <select
+               value={filters.mode}
+               onChange={(e) => updateFilters({ mode: e.target.value })}
+               className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-white focus:border-cyan-500/50 focus:outline-none font-medium cursor-pointer appearance-none"
+             >
+               <option value="live" className="bg-[#0e1426] text-white">Live Only</option>
+               <option value="logged_in" className="bg-[#0e1426] text-white">Logged-in Users</option>
+               <option value="guest" className="bg-[#0e1426] text-white">Guest Sessions</option>
+               <option value="suspicious" className="bg-[#0e1426] text-white">Suspicious</option>
+               <option value="historical" className="bg-[#0e1426] text-white">Historical</option>
+               <option value="test" className="bg-[#0e1426] text-white">Test / Archived</option>
+               <option value="ALL" className="bg-[#0e1426] text-white">All Sessions</option>
+             </select>
+
+             {/* Routing Filter */}
              <div className="flex items-center rounded-xl border border-white/10 bg-white/5 p-1">
-               {['ALL', 'REAL', 'DECOY'].map((mode) => (
+               {['ALL', 'REAL', 'DECOY'].map((rt) => (
                  <button
-                   key={mode}
-                   onClick={() => updateFilters({ mode })}
+                   key={rt}
+                   onClick={() => updateFilters({ routing: rt })}
                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${
-                     filters.mode === mode 
+                     filters.routing === rt 
                        ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" 
                        : "text-gray-500 hover:text-gray-300"
                    }`}
                  >
-                   {mode}
+                   {rt}
                  </button>
                ))}
              </div>
@@ -75,7 +106,7 @@ export default function OpsSessionsPage() {
                }`}
              >
                <Filter size={14} />
-               {filters.risk === 'HIGH' ? 'HIGH RISK ONLY' : 'ALL RISK'}
+               {filters.risk === 'HIGH' ? 'HIGH RISK' : 'ALL RISK'}
              </button>
 
              <button
@@ -96,7 +127,7 @@ export default function OpsSessionsPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500">
-                <th className="px-6 py-4">Session Context</th>
+                <th className="px-6 py-4">Identity / Context</th>
                 <th className="px-6 py-4">Routing</th>
                 <th className="px-6 py-4 text-center">Threat Level</th>
                 <th className="px-6 py-4">Discovery</th>
@@ -133,10 +164,7 @@ export default function OpsSessionsPage() {
                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-400 group-hover:text-cyan-400 group-hover:border-cyan-500/30 transition-all`}>
                             <User size={14} />
                          </div>
-                         <div className="min-w-0">
-                           <p className="text-sm font-semibold text-white truncate max-w-[150px]">{session.session_id}</p>
-                           <p className="text-[10px] text-gray-500 font-mono italic">{session.user_id || "ANON_SUBJECT"}</p>
-                         </div>
+                         {displayUserIdentity(session)}
                        </div>
                     </td>
                     <td className="px-6 py-4">

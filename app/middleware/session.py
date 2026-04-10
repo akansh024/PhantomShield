@@ -59,7 +59,7 @@ def _heuristic_risk(request: Request) -> float:
 class StoreSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[override]
         path = request.url.path
-        if path == "/api/admin/login":
+        if path.startswith(("/api/admin", "/api/dashboard")):
             return await call_next(request)
 
         if not any(path.startswith(prefix) for prefix in _TRACKED_PREFIXES):

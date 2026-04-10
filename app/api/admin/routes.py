@@ -72,6 +72,7 @@ def get_summary(
 
 @router.get("/sessions", response_model=list[SessionRecord])
 def list_sessions(
+    filter_mode: str = Query("live", regex="^(live|logged_in|guest|suspicious|historical|test|ALL)$"),
     routing_state: str | None = Query(None, regex="^(REAL|DECOY)$"),
     min_risk: float | None = Query(None, ge=0.0, le=1.0),
     limit: int = Query(50, ge=1, le=100),
@@ -83,7 +84,8 @@ def list_sessions(
         limit=limit,
         skip=skip,
         routing_state=routing_state,
-        min_risk=min_risk
+        min_risk=min_risk,
+        filter_mode=filter_mode
     )
 
 
