@@ -7,7 +7,8 @@ export function useSessions() {
   const [sessions, setSessions] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
-    mode: "ALL", // ALL | REAL | DECOY
+    mode: "live", // live | logged_in | guest | suspicious | historical | test | ALL
+    routing: "ALL", // ALL | REAL | DECOY
     risk: "ALL", // ALL | HIGH | LOW
   });
 
@@ -15,8 +16,8 @@ export function useSessions() {
     if (!isPolling) setLoading(true);
     setError("");
     try {
-      const params = {};
-      if (filters.mode !== "ALL") params.routing_state = filters.mode;
+      const params = { filter_mode: filters.mode };
+      if (filters.routing !== "ALL") params.routing_state = filters.routing;
       if (filters.risk === "HIGH") params.min_risk = 0.6;
       
       // The current backend list_sessions API handles these params.

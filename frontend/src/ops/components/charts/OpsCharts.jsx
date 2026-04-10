@@ -156,6 +156,23 @@ export function EventsTrendChart({ labels, values }) {
   return <Line data={data} options={options} />;
 }
 
+const ACTION_MAP = {
+  request_processed: { label: "Page Interaction", category: "Browsing", desc: "General page or API request" },
+  risk_evaluated: { label: "Security Check", category: "Security Events", desc: "Background security score evaluation" },
+  products_list_view: { label: "Product Directory", category: "Shopping Behavior", desc: "Viewed the product list" },
+  product_view: { label: "Product Details", category: "Shopping Behavior", desc: "Viewed a specific product" },
+  cart_add: { label: "Add to Cart", category: "Shopping Behavior", desc: "Added item to cart" },
+  cart_remove: { label: "Remove from Cart", category: "Shopping Behavior", desc: "Removed item from cart" },
+  checkout_started: { label: "Checkout Started", category: "Shopping Behavior", desc: "Initiated the checkout process" },
+  order_completed: { label: "Order Completed", category: "Shopping Behavior", desc: "Completed an order" },
+  login_attempt: { label: "Login Attempt", category: "Authentication", desc: "Attempted to log in" },
+  login_success: { label: "Login Success", category: "Authentication", desc: "Successfully logged in" },
+  login_failed: { label: "Login Failed", category: "Security Events", desc: "Failed login attempt" },
+  signup_attempt: { label: "Signup Attempt", category: "Authentication", desc: "Attempted to sign up" },
+  api_request: { label: "API Request", category: "Browsing", desc: "Backend API request" },
+  canary_trigger: { label: "Canary Triggered", category: "Security Events", desc: "Hit a honeypot or canary token" },
+};
+
 export function ActionDistributionChart({ labels, values }) {
   const palette = [
     "rgba(59, 130, 246, 0.82)",
@@ -167,8 +184,10 @@ export function ActionDistributionChart({ labels, values }) {
     "rgba(148, 163, 184, 0.82)",
   ];
 
+  const mappedLabels = labels.map(l => ACTION_MAP[l]?.label || l.replace(/_/g, " "));
+
   const data = {
-    labels,
+    labels: mappedLabels,
     datasets: [
       {
         label: "Events",
@@ -186,7 +205,23 @@ export function ActionDistributionChart({ labels, values }) {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: buildTooltip(),
+      tooltip: {
+        ...buildTooltip(),
+        callbacks: {
+          afterTitle: function(context) {
+             const rawLabel = labels[context[0].dataIndex];
+             const map = ACTION_MAP[rawLabel];
+             if (map) return `Category: ${map.category}`;
+             return undefined;
+          },
+          beforeBody: function(context) {
+             const rawLabel = labels[context[0].dataIndex];
+             const map = ACTION_MAP[rawLabel];
+             if (map) return `${map.desc}\nRaw ID: ${rawLabel}`;
+             return `Raw ID: ${rawLabel}`;
+          }
+        }
+      },
     },
     scales: buildAxesOptions(),
   };

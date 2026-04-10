@@ -110,7 +110,14 @@ export default function SessionDetailPanel({ session, isOpen, onClose }) {
                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Subject Identity</p>
                <div className="flex items-center gap-3">
                  <User size={16} className="text-cyan-400" />
-                 <span className="text-sm text-white">{details?.user_id || session?.user_id || "Anonymous Client"}</span>
+                 <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate max-w-[150px]">
+                      {details?.user_name || session?.user_name || "Guest User"}
+                    </p>
+                    <p className="text-[10px] text-gray-500 font-mono">
+                      {details?.user_email || session?.user_email || session?.user_id || "Unauthenticated Session"}
+                    </p>
+                 </div>
                </div>
             </div>
             <div className="rounded-xl border border-white/5 bg-white/5 p-4">

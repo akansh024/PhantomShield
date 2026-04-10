@@ -127,7 +127,7 @@ export default function OpsAnalyticsPage() {
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <ChartCard
           title="Forensic Action Streams"
-          subtitle="Frequency of specific operator-defined actions"
+          subtitle="This graph shows how users interact with the system and how security mechanisms evaluate their behavior. Actions are automatically categorized to help highlight anomalies or shopping behavior."
           loading={loading}
           hasData={chartData.flags.actionHasData}
           emptyDescription="No action logs recorded in this window."

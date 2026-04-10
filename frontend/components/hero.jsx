@@ -398,9 +398,9 @@ export default function HeroSection({ onAdminTrigger }) {
         <GridBackground />
 
         {/* ── MAIN CONTENT ── */}
-        <div className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 w-full pt-[68px]">
+        <div className="relative z-10 max-w-[88rem] mx-auto px-6 sm:px-10 w-full pt-[30px]">
           <div className="grid lg:grid-cols-2 gap-12 xl:gap-16
-            items-center min-h-[calc(100vh-68px)] py-12 lg:py-20">
+            items-center min-h-[calc(100vh-30px)] py-12 lg:py-20">
 
             {/* ── LEFT — COPY ── */}
             <div className="flex flex-col gap-0">

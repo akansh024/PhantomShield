@@ -28,6 +28,9 @@ class DashboardSummary(BaseModel):
 class SessionRecord(BaseModel):
     session_id: str
     user_id: str | None = None
+    user_name: str | None = None
+    user_email: str | None = None
+    is_test: bool = False
     routing_state: Literal["REAL", "DECOY"]
     risk_score: float
     created_at: datetime
