@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -37,12 +38,19 @@ class Settings:
     mongodb_wishlist_collection: str
     mongodb_orders_collection: str
     mongodb_timeout_ms: int
+    app_environment: str
+    frontend_url: str
+    production_host: str
 
 
 def get_settings() -> Settings:
     # Re-load .env on access so dev servers don't hold stale settings
     # when .env is created/updated after process start.
     _load_env_file(PROJECT_ROOT / ".env")
+    frontend_url = os.getenv("FRONTEND_URL", "https://phantomshield.vercel.app").strip()
+    parsed_host = urlparse(frontend_url).hostname or ""
+    production_host = os.getenv("PRODUCTION_HOST", parsed_host).strip().lower()
+
     return Settings(
         jwt_secret=os.getenv("JWT_SECRET", "phantom-dev-secret-key-super-secure"),
         mongodb_uri=os.getenv("MONGODB_URI", "").strip(),
@@ -54,4 +62,7 @@ def get_settings() -> Settings:
         mongodb_wishlist_collection=os.getenv("MONGODB_WISHLIST_COLLECTION", "wishlist_items"),
         mongodb_orders_collection=os.getenv("MONGODB_ORDERS_COLLECTION", "orders"),
         mongodb_timeout_ms=int(os.getenv("MONGODB_TIMEOUT_MS", "5000")),
+        app_environment=os.getenv("APP_ENVIRONMENT", "production").strip().lower(),
+        frontend_url=frontend_url,
+        production_host=production_host,
     )

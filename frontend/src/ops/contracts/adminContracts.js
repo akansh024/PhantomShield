@@ -24,12 +24,22 @@
  * @typedef {Object} SessionRecord
  * @property {string} session_id
  * @property {string|null} user_id
+ * @property {string|null} user_name
+ * @property {string|null} user_email
+ * @property {"guest"|"authenticated"|"test"} session_type
+ * @property {"production"|"test"|"local"} environment
+ * @property {boolean} archived
+ * @property {boolean} is_test_session
  * @property {"REAL"|"DECOY"} routing_state
  * @property {number} risk_score
  * @property {string} created_at
  * @property {string} last_activity
+ * @property {string|null} authenticated_at
+ * @property {string|null} signup_at
  * @property {"active"|"idle"|"expired"} status
  * @property {number} action_count
+ * @property {string} identity_label
+ * @property {string} state_label
  */
 
 /**
@@ -66,15 +76,28 @@ export function normalizeSummary(raw = {}) {
 
 export function normalizeSession(raw = {}) {
   const mode = String(raw.routing_state || "REAL").toUpperCase();
+  const sessionType = String(raw.session_type || (raw.user_id ? "authenticated" : "guest")).toLowerCase();
+  const environment = String(raw.environment || "production").toLowerCase();
+
   return {
     session_id: String(raw.session_id || ""),
     user_id: raw.user_id ?? null,
+    user_name: raw.user_name ?? null,
+    user_email: raw.user_email ?? null,
+    session_type: sessionType === "test" || sessionType === "authenticated" ? sessionType : "guest",
+    environment: environment === "test" || environment === "local" ? environment : "production",
+    archived: Boolean(raw.archived),
+    is_test_session: Boolean(raw.is_test_session),
     routing_state: mode === "DECOY" ? "DECOY" : "REAL",
     risk_score: Number(raw.risk_score ?? 0),
     created_at: String(raw.created_at || ""),
     last_activity: String(raw.last_activity || ""),
+    authenticated_at: raw.authenticated_at ? String(raw.authenticated_at) : null,
+    signup_at: raw.signup_at ? String(raw.signup_at) : null,
     status: raw.status || "active",
     action_count: Number(raw.action_count ?? 0),
+    identity_label: String(raw.identity_label || "Guest / Anonymous session"),
+    state_label: String(raw.state_label || "Live"),
   };
 }
 
@@ -84,7 +107,7 @@ export function normalizeEvent(raw = {}) {
     session_id: String(raw.session_id || ""),
     user_id: raw.user_id ?? null,
     action: String(raw.action || ""),
-    route: String(raw.route || ""),
+    route: raw.route == null ? "" : String(raw.route),
     payload: raw.payload || {},
     timestamp: String(raw.timestamp || ""),
     mode: mode === "DECOY" ? "DECOY" : "REAL",

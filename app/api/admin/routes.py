@@ -37,13 +37,15 @@ def admin_login(payload: AdminLoginRequest) -> AdminLoginResponse:
         token_data = {
             "sub": "sec_ops_01",
             "name": "Phantom Commander",
-            "role": "Lead Analyst"
+            "role": "Lead Analyst",
+            "email": "secops@phantomshield.ai",
         }
         token = create_access_token(token_data)
         return AdminLoginResponse(
             access_token=token,
             operator_name="Phantom Commander",
-            role="Lead Analyst"
+            role="Lead Analyst",
+            operator_email="secops@phantomshield.ai",
         )
     
     from fastapi import HTTPException
@@ -72,8 +74,8 @@ def get_summary(
 
 @router.get("/sessions", response_model=list[SessionRecord])
 def list_sessions(
-    filter_mode: str = Query("live", regex="^(live|logged_in|guest|suspicious|historical|test|ALL)$"),
-    routing_state: str | None = Query(None, regex="^(REAL|DECOY)$"),
+    filter_mode: str = Query("live", pattern="^(live|logged_in|guest|suspicious|historical|test|ALL)$"),
+    routing_state: str | None = Query(None, pattern="^(REAL|DECOY)$"),
     min_risk: float | None = Query(None, ge=0.0, le=1.0),
     limit: int = Query(50, ge=1, le=100),
     skip: int = Query(0, ge=0),
@@ -95,12 +97,7 @@ def get_session(
     admin_repo: MongoAdminRepository = Depends(get_admin_repo),
     operator: dict = Depends(get_current_operator),
 ) -> SessionRecord:
-    # Use existing get_sessions with a filter for session_id
-    sessions = admin_repo.get_sessions(limit=1, skip=0, routing_state=None, min_risk=None)
-    # This is a bit inefficient for a detail call, but works for the skeleton.
-    # In practice, session_coll.find_one would be better.
-    # I'll implement a proper detail call in admin_repo later if needed.
-    session = next((s for s in sessions if s.session_id == session_id), None)
+    session = admin_repo.get_session_by_id(session_id)
     if not session:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Session not found")
@@ -110,10 +107,16 @@ def get_session(
 @router.get("/sessions/{session_id}/events", response_model=list[ForensicEventRecord])
 def get_session_forensics(
     session_id: str,
+    limit: int = Query(100, ge=1, le=500),
+    recent_minutes: int | None = Query(None, ge=1, le=24 * 60),
     admin_repo: MongoAdminRepository = Depends(get_admin_repo),
     operator: dict = Depends(get_current_operator),
 ) -> list[ForensicEventRecord]:
-    events = admin_repo.get_session_events(session_id)
+    events = admin_repo.get_session_events(
+        session_id=session_id,
+        limit=limit,
+        recent_minutes=recent_minutes,
+    )
     return [ForensicEventRecord(**e) for e in events]
 
 
@@ -127,7 +130,7 @@ def get_sessions_over_time(
 
 @router.get("/analytics/products", response_model=list[ProductCount])
 def get_product_analytics(
-    metric: str = Query("view", regex="^(view|cart|order)$"),
+    metric: str = Query("view", pattern="^(view|cart|order)$"),
     limit: int = Query(5, ge=1, le=20),
     admin_repo: MongoAdminRepository = Depends(get_admin_repo),
     operator: dict = Depends(get_current_operator),

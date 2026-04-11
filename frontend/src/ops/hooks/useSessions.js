@@ -30,7 +30,10 @@ export function useSessions() {
         filtered = data.filter(
           (session) =>
             session.session_id.toLowerCase().includes(s) ||
-            (session.user_id && session.user_id.toLowerCase().includes(s))
+            (session.user_id && session.user_id.toLowerCase().includes(s)) ||
+            (session.user_name && session.user_name.toLowerCase().includes(s)) ||
+            (session.user_email && session.user_email.toLowerCase().includes(s)) ||
+            (session.identity_label && session.identity_label.toLowerCase().includes(s))
         );
       }
       

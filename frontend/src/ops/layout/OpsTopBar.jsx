@@ -1,4 +1,4 @@
-import { Bell, Clock3, Menu, RefreshCw, User } from "lucide-react";
+import { Bell, Clock3, Menu, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchSessionMe } from "../../api/api";
@@ -24,7 +24,7 @@ export default function OpsTopBar({
   lastUpdated,
 }) {
   const location = useLocation();
-  const [operator, setOperator] = useState({ name: "Loading...", role: "Analyst" });
+  const [operator, setOperator] = useState({ name: "Operator", role: "Analyst", email: "" });
   
   const title = useMemo(() => resolvePageTitle(location.pathname), [location.pathname]);
   const updatedLabel = lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "Awaiting first sync";
@@ -33,11 +33,13 @@ export default function OpsTopBar({
     async function loadIdentity() {
       try {
         const me = await fetchSessionMe();
-        // Cosmetic override for Master Admin
-        const displayName = me.name === "Master Admin" ? "Phantom Commander" : me.name;
-        setOperator({ ...me, name: displayName });
+        setOperator({
+          name: me?.name || "Operator",
+          role: me?.role || "Analyst",
+          email: me?.email || "",
+        });
       } catch (err) {
-        setOperator({ name: "Unknown Op", role: "Offline" });
+        setOperator({ name: "Operator", role: "Offline", email: "" });
       }
     }
     loadIdentity();
@@ -66,6 +68,7 @@ export default function OpsTopBar({
              <div className="text-right">
                 <p className="text-[11px] font-bold text-white uppercase tracking-wider">{operator.name}</p>
                 <p className="text-[9px] text-cyan-500 font-medium uppercase tracking-[0.1em]">{operator.role}</p>
+                {operator.email ? <p className="text-[9px] text-gray-400">{operator.email}</p> : null}
              </div>
              <div className="h-8 w-8 rounded-lg border border-cyan-500/30 bg-cyan-500/10 flex items-center justify-center text-cyan-400">
                 <User size={14} />

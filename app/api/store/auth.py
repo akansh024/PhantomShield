@@ -6,6 +6,7 @@ Routing authority remains server-side in SessionState.
 """
 
 import secrets
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, HTTPException, Request, Response
 from pydantic import EmailStr
@@ -91,6 +92,7 @@ async def signup(
 
     if is_decoy:
         # Decoy auth always succeeds and never touches real user DB.
+        session.signup_at = session.signup_at or datetime.now(timezone.utc)
         return {"status": "success", "message": "User registered successfully"}
 
     try:
@@ -112,6 +114,7 @@ async def signup(
             ) from exc
 
         create_user(name=name, email=email, hashed_password=hashed_password)
+        session.signup_at = session.signup_at or datetime.now(timezone.utc)
         return {"status": "success", "message": "User registered successfully"}
     except DuplicateUserError:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -148,6 +151,8 @@ async def login(
         new_session.user_id = fake_user_id
         new_session.user_name = email.split("@")[0].capitalize()
         new_session.user_email = email
+        new_session.session_type = "test" if new_session.is_test_session else "authenticated"
+        new_session.authenticated_at = datetime.now(timezone.utc)
         request.state.session = new_session
 
         token = create_identity_token(
@@ -188,6 +193,8 @@ async def login(
     new_session.user_id = user_id
     new_session.user_name = user_name
     new_session.user_email = email
+    new_session.session_type = "test" if new_session.is_test_session else "authenticated"
+    new_session.authenticated_at = datetime.now(timezone.utc)
     request.state.session = new_session
 
     token = create_identity_token(
@@ -217,11 +224,17 @@ async def get_me(request: Request):
             {
                 "id": session.user_id,
                 "name": session.user_name,
+                "email": session.user_email,
             }
             if session.user_id
             else None
         ),
+        "user_email": session.user_email,
+        "authenticated_at": session.authenticated_at,
+        "signup_at": session.signup_at,
         "is_authenticated": session.user_id is not None,
+        "session_type": session.session_type,
+        "routing_state": session.routing_state,
     }
 
 
@@ -232,6 +245,9 @@ async def logout(request: Request, response: Response):
 
     session.user_id = None
     session.user_name = None
+    session.user_email = None
+    session.authenticated_at = None
+    session.session_type = "test" if session.is_test_session else "guest"
 
     response.delete_cookie(COOKIE_AUTH_TOKEN, path=COOKIE_PATH)
     return {"status": "success"}

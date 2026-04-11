@@ -15,6 +15,8 @@ from datetime import datetime
 from typing import Literal, Optional
 
 RoutingState = Literal["REAL", "DECOY"]
+SessionEnvironment = Literal["production", "test", "local"]
+SessionType = Literal["guest", "authenticated", "test"]
 
 
 @dataclass
@@ -24,6 +26,13 @@ class SessionState:
     user_name: Optional[str] = None
     user_email: Optional[str] = None
     is_test: bool = False
+    is_test_session: bool = False
+    archived: bool = False
+    environment: SessionEnvironment = "production"
+    session_type: SessionType = "guest"
+    source_host: Optional[str] = None
+    authenticated_at: Optional[datetime] = None
+    signup_at: Optional[datetime] = None
     
     routing_state: RoutingState = "REAL"
     risk_score: float = 0.0
