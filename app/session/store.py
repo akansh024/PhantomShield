@@ -5,7 +5,8 @@ PhantomShield - Server-side persistent session store using MongoDB.
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta
+import re
+from datetime import datetime
 from threading import Lock
 from typing import Any, Optional
 
@@ -18,6 +19,7 @@ from app.session.constants import SESSION_EXPIRY_SECONDS
 from app.session.models import SessionState
 
 SESSION_ID_BYTES = 32
+_LOCAL_HOST_PATTERN = re.compile(r"(localhost|127\.0\.0\.1|::1)", re.IGNORECASE)
 
 
 class MongoSessionStore:
@@ -82,10 +84,77 @@ class MongoSessionStore:
             "user_name": state.user_name,
             "user_email": state.user_email,
             "is_test": state.is_test,
+            "is_test_session": state.is_test_session,
+            "archived": state.archived,
+            "environment": state.environment,
+            "session_type": state.session_type,
+            "source_host": state.source_host,
+            "authenticated_at": state.authenticated_at,
+            "login_at": state.login_at,
+            "signup_at": state.signup_at,
             "flags": state.flags,
         }
 
+    def _resolve_environment(
+        self,
+        *,
+        raw_environment: Any,
+        source_host: str | None,
+        is_test: bool,
+        is_test_session: bool,
+        archived: bool,
+    ) -> str:
+        env = str(raw_environment or "").strip().lower()
+        if env in {"production", "test", "local"}:
+            return env
+
+        host = str(source_host or "").strip().lower()
+        if _LOCAL_HOST_PATTERN.search(host):
+            return "local"
+
+        if is_test or is_test_session or archived:
+            return "test"
+
+        return "production"
+
+    def _resolve_session_type(
+        self,
+        *,
+        raw_session_type: Any,
+        user_id: Any,
+        environment: str,
+        is_test: bool,
+        is_test_session: bool,
+    ) -> str:
+        session_type = str(raw_session_type or "").strip().lower()
+        if session_type in {"guest", "authenticated", "test"}:
+            return session_type
+
+        if environment in {"test", "local"} or is_test or is_test_session:
+            return "test"
+
+        return "authenticated" if user_id else "guest"
+
     def _deserialize(self, doc: dict[str, Any]) -> SessionState:
+        is_test = bool(doc.get("is_test", False))
+        is_test_session = bool(doc.get("is_test_session", is_test))
+        archived = bool(doc.get("archived", False))
+        source_host = doc.get("source_host")
+        environment = self._resolve_environment(
+            raw_environment=doc.get("environment"),
+            source_host=source_host,
+            is_test=is_test,
+            is_test_session=is_test_session,
+            archived=archived,
+        )
+        session_type = self._resolve_session_type(
+            raw_session_type=doc.get("session_type"),
+            user_id=doc.get("user_id"),
+            environment=environment,
+            is_test=is_test,
+            is_test_session=is_test_session,
+        )
+
         return SessionState(
             session_id=doc["session_id"],
             user_id=doc.get("user_id"),
@@ -95,7 +164,15 @@ class MongoSessionStore:
             last_activity=doc.get("last_activity", datetime.utcnow()),
             user_name=doc.get("user_name"),
             user_email=doc.get("user_email"),
-            is_test=doc.get("is_test", False),
+            is_test=is_test,
+            is_test_session=is_test_session,
+            archived=archived,
+            environment=environment,
+            session_type=session_type,
+            source_host=source_host,
+            authenticated_at=doc.get("authenticated_at"),
+            login_at=doc.get("login_at"),
+            signup_at=doc.get("signup_at"),
             flags=doc.get("flags", {}),
         )
 
@@ -153,6 +230,14 @@ class MongoSessionStore:
         except PyMongoError:
             pass
 
+    def update_session_identity(self, session_id: str, user: Any) -> None:
+        state = self.get_session(session_id)
+        if state:
+            state.user_id = str(user.id) if hasattr(user, "id") else str(user.get("id") or user.get("_id"))
+            state.user_name = user.name if hasattr(user, "name") else user.get("name")
+            state.user_email = user.email if hasattr(user, "email") else user.get("email")
+            self.save_session(state)
+
     def rotate_session(self, old_id: str) -> SessionState:
         collection = self._get_collection()
         
@@ -179,6 +264,14 @@ class MongoSessionStore:
                 user_name=old_state.user_name,
                 user_email=old_state.user_email,
                 is_test=old_state.is_test,
+                is_test_session=old_state.is_test_session,
+                archived=old_state.archived,
+                environment=old_state.environment,
+                session_type=old_state.session_type,
+                source_host=old_state.source_host,
+                authenticated_at=old_state.authenticated_at,
+                login_at=old_state.login_at,
+                signup_at=old_state.signup_at,
                 flags=old_state.flags.copy(),
             )
 

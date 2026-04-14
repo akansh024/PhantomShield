@@ -31,19 +31,28 @@ class SessionRecord(BaseModel):
     user_name: str | None = None
     user_email: str | None = None
     is_test: bool = False
+    is_test_session: bool = False
+    archived: bool = False
+    environment: Literal["production", "test", "local"] = "production"
+    session_type: Literal["guest", "authenticated", "test"] = "guest"
     routing_state: Literal["REAL", "DECOY"]
     risk_score: float
     created_at: datetime
     last_activity: datetime
+    authenticated_at: datetime | None = None
+    login_at: datetime | None = None
+    signup_at: datetime | None = None
     status: Literal["active", "idle", "expired"]
     action_count: int = 0
+    identity_label: str = "Guest / Anonymous session"
+    state_label: str = "Live"
 
 
 class ForensicEventRecord(BaseModel):
     session_id: str
     user_id: str | None = None
     action: str
-    route: str
+    route: str | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime
     mode: Literal["REAL", "DECOY"]
@@ -99,3 +108,4 @@ class AdminLoginResponse(BaseModel):
     token_type: str = "bearer"
     operator_name: str
     role: str
+    operator_email: str | None = None

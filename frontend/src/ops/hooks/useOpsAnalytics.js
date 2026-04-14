@@ -58,6 +58,19 @@ function parseTrend(data = []) {
   };
 }
 
+function parseActions(actions = []) {
+  return actions
+    .map((item) => ({
+      action: String(item.action || ""),
+      label: String(item.label || String(item.action || "unknown").replace(/_/g, " ")),
+      category: String(item.category || "Browsing"),
+      description: String(item.description || "Operational event captured by telemetry."),
+      count: toNumber(item.count || 0),
+      suspicious: Boolean(item.suspicious),
+    }))
+    .filter((item) => item.count > 0);
+}
+
 // Safe wrapper: resolve to fallback value on error instead of rejecting
 async function safe(promise, fallback) {
   try {
@@ -77,7 +90,10 @@ export function useOpsAnalytics() {
     mode: { labels: ["REAL", "DECOY"], values: [0, 0] },
     risk: { labels: RISK_BUCKETS.map((bucket) => bucket.label), values: [0, 0, 0, 0, 0] },
     trend: { labels: [], values: [] },
-    actions: { labels: [], values: [] },
+    actions: [],
+    actionCategories: [],
+    forensicWindowMinutes: 0,
+    forensicTotalEvents: 0,
     products: { viewed: [], carted: [], wishlisted: [], ordered: [] },
     flags: { modeHasData: false, riskHasData: false, trendHasData: false, actionHasData: false },
   });
@@ -102,22 +118,29 @@ export function useOpsAnalytics() {
     const viewed = parseTopProducts(topViewed);
     const carted = parseTopProducts(topCarted);
 
-    // Parse forensic actions for the bar chart
-    const actions = forensicSummary?.common_actions || [];
-    const actionLabels = actions.map(a => a.action || "unknown");
-    const actionValues = actions.map(a => a.count || 0);
+    const actions = parseActions(forensicSummary?.common_actions || []);
+    const actionCategories = Array.isArray(forensicSummary?.category_breakdown)
+      ? forensicSummary.category_breakdown.map((c) => ({
+          category: String(c.category || "Browsing"),
+          description: String(c.description || ""),
+          count: toNumber(c.count || 0),
+        }))
+      : [];
 
     setChartData({
       mode: { labels: ["REAL", "DECOY"], values: modeValues },
       risk,
       trend,
-      actions: { labels: actionLabels, values: actionValues },
+      actions,
+      actionCategories,
+      forensicWindowMinutes: toNumber(forensicSummary?.window_minutes || 0),
+      forensicTotalEvents: toNumber(forensicSummary?.total_events || 0),
       products: { viewed, carted, wishlisted: [], ordered: [] },
       flags: {
         modeHasData: modeValues.some(v => v > 0),
         riskHasData: risk.values.some(v => v > 0),
         trendHasData: trend.values.length > 0 && trend.values.some(v => v > 0),
-        actionHasData: actionValues.length > 0 && actionValues.some(v => v > 0),
+        actionHasData: actions.length > 0,
       },
     });
     

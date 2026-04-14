@@ -1,10 +1,9 @@
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import ChartCard from "../components/ChartCard";
 import {
   ActionDistributionChart,
-  EventsTrendChart,
   LiveSessionGraph,
   ModeDistributionChart,
   RiskDistributionChart,
@@ -127,12 +126,12 @@ export default function OpsAnalyticsPage() {
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <ChartCard
           title="Forensic Action Streams"
-          subtitle="This graph shows how users interact with the system and how security mechanisms evaluate their behavior. Actions are automatically categorized to help highlight anomalies or shopping behavior."
+          subtitle="What happened: recent live visitor actions. Why it matters: each action is grouped by business/security category and marked as normal or suspicious."
           loading={loading}
           hasData={chartData.flags.actionHasData}
           emptyDescription="No action logs recorded in this window."
         >
-          <ActionDistributionChart labels={chartData.actions.labels} values={chartData.actions.values} />
+          <ActionDistributionChart actions={chartData.actions} />
         </ChartCard>
 
         <SectionCard title="Product Affinity Insights" subtitle="Highly engaged product entities.">
@@ -162,7 +161,30 @@ export default function OpsAnalyticsPage() {
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-4">
         {/* Placeholder for more granular insight components if needed */}
       </section>
+
+      <section className="rounded-2xl border border-white/10 bg-[#0f1322] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Forensic Action Legend</h3>
+            <p className="mt-1 text-xs text-gray-400">
+              Window: {chartData.forensicWindowMinutes || 0} minutes | Total events: {chartData.forensicTotalEvents || 0}
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1 text-[10px] uppercase tracking-widest text-red-300">
+            <ShieldAlert size={12} />
+            Suspicious categories should be reviewed first
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {chartData.actionCategories.map((category) => (
+            <div key={category.category} className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <p className="text-xs font-semibold text-white">{category.category}</p>
+              <p className="mt-1 text-[11px] text-cyan-300">{category.count} events</p>
+              <p className="mt-1 text-[11px] text-gray-400">{category.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
-

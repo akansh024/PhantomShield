@@ -59,9 +59,7 @@ export const adminApi = {
     if (data.access_token) {
       localStorage.setItem("admin_token", data.access_token);
       localStorage.setItem("admin_clearance", "verified");
-      if (data.operator_name) {
-        localStorage.setItem("admin_name", data.operator_name);
-      }
+      localStorage.removeItem("admin_email");
     }
     return data;
   },
@@ -70,6 +68,7 @@ export const adminApi = {
     localStorage.removeItem("admin_token");
     localStorage.removeItem("admin_clearance");
     localStorage.removeItem("admin_name");
+    localStorage.removeItem("admin_email");
     window.location.href = "/";
   },
 };

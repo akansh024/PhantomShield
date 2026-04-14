@@ -1,9 +1,24 @@
 export const fetchSessionMe = async () => {
-  const customName = localStorage.getItem('admin_name') || "Master Admin";
+  const customName = (localStorage.getItem("admin_name") || "").trim();
+  const customEmail = (localStorage.getItem("admin_email") || "").trim();
+  const token = localStorage.getItem("admin_token");
+
+  let payload = {};
+  if (token) {
+    try {
+      const [, payloadSegment] = token.split(".");
+      const normalized = payloadSegment.replace(/-/g, "+").replace(/_/g, "/");
+      payload = JSON.parse(atob(normalized));
+    } catch (_err) {
+      payload = {};
+    }
+  }
+
   return {
-    user_id: "sec_ops_01",
-    role: "Analyst",
-    name: customName,
+    user_id: payload.sub || "sec_ops_01",
+    role: payload.role || "Analyst",
+    name: customName || payload.name || "Operator",
+    email: customEmail || "",
   };
 };
 

@@ -156,74 +156,79 @@ export function EventsTrendChart({ labels, values }) {
   return <Line data={data} options={options} />;
 }
 
-const ACTION_MAP = {
-  request_processed: { label: "Page Interaction", category: "Browsing", desc: "General page or API request" },
-  risk_evaluated: { label: "Security Check", category: "Security Events", desc: "Background security score evaluation" },
-  products_list_view: { label: "Product Directory", category: "Shopping Behavior", desc: "Viewed the product list" },
-  product_view: { label: "Product Details", category: "Shopping Behavior", desc: "Viewed a specific product" },
-  cart_add: { label: "Add to Cart", category: "Shopping Behavior", desc: "Added item to cart" },
-  cart_remove: { label: "Remove from Cart", category: "Shopping Behavior", desc: "Removed item from cart" },
-  checkout_started: { label: "Checkout Started", category: "Shopping Behavior", desc: "Initiated the checkout process" },
-  order_completed: { label: "Order Completed", category: "Shopping Behavior", desc: "Completed an order" },
-  login_attempt: { label: "Login Attempt", category: "Authentication", desc: "Attempted to log in" },
-  login_success: { label: "Login Success", category: "Authentication", desc: "Successfully logged in" },
-  login_failed: { label: "Login Failed", category: "Security Events", desc: "Failed login attempt" },
-  signup_attempt: { label: "Signup Attempt", category: "Authentication", desc: "Attempted to sign up" },
-  api_request: { label: "API Request", category: "Browsing", desc: "Backend API request" },
-  canary_trigger: { label: "Canary Triggered", category: "Security Events", desc: "Hit a honeypot or canary token" },
-};
-
-export function ActionDistributionChart({ labels, values }) {
-  const palette = [
-    "rgba(59, 130, 246, 0.82)",
-    "rgba(6, 182, 212, 0.82)",
-    "rgba(139, 92, 246, 0.82)",
-    "rgba(16, 185, 129, 0.82)",
-    "rgba(245, 158, 11, 0.82)",
-    "rgba(244, 63, 94, 0.82)",
-    "rgba(148, 163, 184, 0.82)",
-  ];
-
-  const mappedLabels = labels.map(l => ACTION_MAP[l]?.label || l.replace(/_/g, " "));
-
-  const data = {
-    labels: mappedLabels,
-    datasets: [
-      {
-        label: "Events",
-        data: values,
-        backgroundColor: labels.map((_, i) => palette[i % palette.length]),
-        borderColor: labels.map((_, i) => palette[i % palette.length].replace("0.82", "1")),
-        borderWidth: 1,
-        borderRadius: 5,
-      },
-    ],
+export function ActionDistributionChart({ actions = [] }) {
+  const categoryColors = {
+    Browsing: "rgba(59, 130, 246, 0.82)",
+    Search: "rgba(37, 99, 235, 0.82)",
+    "Cart actions": "rgba(6, 182, 212, 0.82)",
+    "Wishlist actions": "rgba(244, 63, 94, 0.82)",
+    "Login/Signup": "rgba(16, 185, 129, 0.82)",
+    Checkout: "rgba(245, 158, 11, 0.82)",
+    "Security checks": "rgba(139, 92, 246, 0.82)",
+    "Suspicious behavior": "rgba(239, 68, 68, 0.82)",
   };
+
+  const labels = actions.map((a) => a.label);
+  const categories = [...new Set(actions.map((a) => a.category || "Browsing"))];
+  const datasets = categories.map((category) => ({
+    label: category,
+    data: actions.map((a) => (a.category === category ? a.count : 0)),
+    backgroundColor: categoryColors[category] || "rgba(148, 163, 184, 0.82)",
+    borderColor: (categoryColors[category] || "rgba(148, 163, 184, 0.82)").replace("0.82", "1"),
+    borderWidth: 1,
+    borderRadius: 6,
+  }));
+
+  const data = { labels, datasets };
+  const axes = buildAxesOptions();
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: buildLegend(),
       tooltip: {
         ...buildTooltip(),
         callbacks: {
-          afterTitle: function(context) {
-             const rawLabel = labels[context[0].dataIndex];
-             const map = ACTION_MAP[rawLabel];
-             if (map) return `Category: ${map.category}`;
-             return undefined;
+          title: (context) => labels[context[0].dataIndex] || "Action",
+          afterTitle: (context) => {
+            const item = actions[context[0].dataIndex];
+            return item?.category ? `Category: ${item.category}` : undefined;
           },
-          beforeBody: function(context) {
-             const rawLabel = labels[context[0].dataIndex];
-             const map = ACTION_MAP[rawLabel];
-             if (map) return `${map.desc}\nRaw ID: ${rawLabel}`;
-             return `Raw ID: ${rawLabel}`;
-          }
-        }
+          beforeBody: (context) => {
+            const item = actions[context[0].dataIndex];
+            if (!item) return undefined;
+            return `${item.description}\nRaw event: ${item.action}`;
+          },
+          afterBody: (context) => {
+            const item = actions[context[0].dataIndex];
+            if (!item) return undefined;
+            return item.suspicious
+              ? "Why it matters: marked as suspicious behavior."
+              : "Why it matters: normal customer behavior.";
+          },
+        },
       },
     },
-    scales: buildAxesOptions(),
+    scales: {
+      ...axes,
+      x: {
+        ...axes.x,
+        title: {
+          display: true,
+          text: "Visitor action (plain language)",
+          color: TICK_COLOR,
+        },
+      },
+      y: {
+        ...axes.y,
+        title: {
+          display: true,
+          text: "Event count in live forensic window",
+          color: TICK_COLOR,
+        },
+      },
+    },
   };
 
   return <Bar data={data} options={options} />;

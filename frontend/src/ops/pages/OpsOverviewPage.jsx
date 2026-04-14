@@ -1,4 +1,4 @@
-import { Radar, Route, User, ArrowUpDown, ExternalLink } from "lucide-react";
+import { Radar, Route, User, ArrowUpDown, ExternalLink, Mail } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { dashboardApi, toApiError } from "../api/dashboardApi";
 import { adminApi } from "../api/adminApi";
@@ -60,6 +60,8 @@ export default function OpsOverviewPage() {
   }, [fetchDashboardData]);
 
   const handleRowClick = (session) => {
+    localStorage.setItem("ops_focus_session", JSON.stringify(session));
+    window.dispatchEvent(new Event("ops:focus-session"));
     setSelectedSession(session);
     setIsPanelOpen(true);
   };
@@ -161,7 +163,14 @@ export default function OpsOverviewPage() {
                                <div className="flex items-center gap-3">
                                   <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-400 group-hover:text-cyan-400"><User size={14} /></div>
                                   <div className="min-w-0">
-                                     <p className="text-sm font-semibold text-white truncate max-w-[150px]">{session.session_id}</p>
+                                     <p className="text-sm font-semibold text-white truncate max-w-[150px]">
+                                       {session.user_name || (session.user_email ? session.user_email.split("@")[0] : "Guest")}
+                                     </p>
+                                     <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                       <Mail size={10} />
+                                       {session.user_email || "Not signed in"}
+                                     </p>
+                                     <p className="text-[9px] font-mono text-cyan-300">{session.session_id}</p>
                                   </div>
                                </div>
                             </td>
