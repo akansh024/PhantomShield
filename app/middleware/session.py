@@ -14,6 +14,7 @@ from app.session.constants import (
     COOKIE_HTTPONLY,
     COOKIE_PATH,
     COOKIE_SAMESITE,
+    COOKIE_SECURE,
     COOKIE_SESSION_ID,
     SESSION_MAX_AGE_SECONDS,
 )
@@ -131,13 +132,16 @@ class StoreSessionMiddleware(BaseHTTPMiddleware):
         incoming_session_id = request.cookies.get(COOKIE_SESSION_ID)
         is_new_session = False
 
-        session = (
-            session_store.get_session(incoming_session_id)
-            if incoming_session_id
-            else None
-        )
-
-        if session is None:
+        if incoming_session_id:
+            session = session_store.get_session(incoming_session_id)
+            if session is None:
+                # Reuse the existing ID to prevent duplication loops
+                from app.session.models import SessionState
+                session = SessionState(session_id=incoming_session_id)
+                session.risk_score = _heuristic_risk(request)
+                session.routing_state = "REAL"
+                is_new_session = True
+        else:
             session = session_store.create_session()
             session.risk_score = _heuristic_risk(request)
             session.routing_state = "REAL"
@@ -184,6 +188,7 @@ class StoreSessionMiddleware(BaseHTTPMiddleware):
                 value=current_session.session_id,
                 httponly=COOKIE_HTTPONLY,
                 samesite=COOKIE_SAMESITE,
+                secure=COOKIE_SECURE,
                 max_age=SESSION_MAX_AGE_SECONDS,
                 path=COOKIE_PATH,
             )

@@ -19,6 +19,7 @@ from app.session.constants import (
     COOKIE_HTTPONLY,
     COOKIE_PATH,
     COOKIE_SAMESITE,
+    COOKIE_SECURE,
     COOKIE_SESSION_ID,
     SESSION_MAX_AGE_SECONDS,
 )
@@ -41,6 +42,7 @@ def _set_identity_cookies(response: Response, *, session_id: str, token: str) ->
         value=session_id,
         httponly=COOKIE_HTTPONLY,
         samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
         max_age=SESSION_MAX_AGE_SECONDS,
         path=COOKIE_PATH,
     )
@@ -49,6 +51,7 @@ def _set_identity_cookies(response: Response, *, session_id: str, token: str) ->
         value=token,
         httponly=COOKIE_HTTPONLY,
         samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
         max_age=SESSION_MAX_AGE_SECONDS,
         path=COOKIE_PATH,
     )
@@ -93,6 +96,7 @@ async def signup(
     if is_decoy:
         # Decoy auth always succeeds and never touches real user DB.
         session.signup_at = session.signup_at or datetime.now(timezone.utc)
+        session_store.save_session(session)
         return {"status": "success", "message": "User registered successfully"}
 
     try:
@@ -115,6 +119,7 @@ async def signup(
 
         create_user(name=name, email=email, hashed_password=hashed_password)
         session.signup_at = session.signup_at or datetime.now(timezone.utc)
+        session_store.save_session(session)
         return {"status": "success", "message": "User registered successfully"}
     except DuplicateUserError:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -139,29 +144,22 @@ async def login(
 
     if is_decoy:
         fake_user_id = f"fake_{secrets.token_urlsafe(8)}"
-        old_session_id = session.session_id
 
-        # Rotate session_id on login as a fixation mitigation requirement.
-        new_session = session_store.rotate_session(session.session_id)
-        _migrate_session_state(
-            old_session_id=old_session_id,
-            new_session_id=new_session.session_id,
-            routing_state=session.routing_state,
-        )
-        new_session.user_id = fake_user_id
-        new_session.user_name = email.split("@")[0].capitalize()
-        new_session.user_email = email
-        new_session.session_type = "test" if new_session.is_test_session else "authenticated"
-        new_session.authenticated_at = datetime.now(timezone.utc)
-        request.state.session = new_session
+        session.user_id = fake_user_id
+        session.user_name = email.split("@")[0].capitalize()
+        session.user_email = email
+        session.session_type = "test" if session.is_test_session else "authenticated"
+        session.authenticated_at = datetime.now(timezone.utc)
+        session.login_at = datetime.now(timezone.utc)
+        session_store.save_session(session)
 
         token = create_identity_token(
             user_id=fake_user_id,
-            session_id=new_session.session_id,
+            session_id=session.session_id,
         )
         _set_identity_cookies(
             response,
-            session_id=new_session.session_id,
+            session_id=session.session_id,
             token=token,
         )
 
@@ -169,7 +167,7 @@ async def login(
             "status": "success",
             "user": {
                 "id": fake_user_id,
-                "name": new_session.user_name,
+                "name": session.user_name,
                 "email": email,
             },
         }
@@ -181,29 +179,22 @@ async def login(
 
     user_id = str(user["_id"])
     user_name = user["name"]
-    old_session_id = session.session_id
 
-    # Rotate first, then mint JWT with the rotated session_id.
-    new_session = session_store.rotate_session(session.session_id)
-    _migrate_session_state(
-        old_session_id=old_session_id,
-        new_session_id=new_session.session_id,
-        routing_state=session.routing_state,
-    )
-    new_session.user_id = user_id
-    new_session.user_name = user_name
-    new_session.user_email = email
-    new_session.session_type = "test" if new_session.is_test_session else "authenticated"
-    new_session.authenticated_at = datetime.now(timezone.utc)
-    request.state.session = new_session
+    session.user_id = user_id
+    session.user_name = user_name
+    session.user_email = email
+    session.session_type = "test" if session.is_test_session else "authenticated"
+    session.authenticated_at = datetime.now(timezone.utc)
+    session.login_at = datetime.now(timezone.utc)
+    session_store.save_session(session)
 
     token = create_identity_token(
         user_id=user_id,
-        session_id=new_session.session_id,
+        session_id=session.session_id,
     )
     _set_identity_cookies(
         response,
-        session_id=new_session.session_id,
+        session_id=session.session_id,
         token=token,
     )
 
@@ -231,6 +222,7 @@ async def get_me(request: Request):
         ),
         "user_email": session.user_email,
         "authenticated_at": session.authenticated_at,
+        "login_at": session.login_at,
         "signup_at": session.signup_at,
         "is_authenticated": session.user_id is not None,
         "session_type": session.session_type,

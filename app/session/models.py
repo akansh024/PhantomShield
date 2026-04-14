@@ -32,6 +32,7 @@ class SessionState:
     session_type: SessionType = "guest"
     source_host: Optional[str] = None
     authenticated_at: Optional[datetime] = None
+    login_at: Optional[datetime] = None
     signup_at: Optional[datetime] = None
     
     routing_state: RoutingState = "REAL"

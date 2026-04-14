@@ -163,10 +163,10 @@ export default function SessionDetailPanel({ session, isOpen, onClose }) {
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <p className="text-[10px] uppercase tracking-widest text-gray-500">Login / Signup Time</p>
               <p className="mt-2 text-xs text-gray-300">
-                Login: <span className="text-white">{formatDateTime(details?.authenticated_at || session?.authenticated_at)}</span>
+                Login: <span className="text-white">{(details?.login_at || session?.login_at) ? formatDateTime(details?.login_at || session?.login_at) : "Not logged in"}</span>
               </p>
               <p className="text-xs text-gray-300">
-                Signup: <span className="text-white">{formatDateTime(details?.signup_at || session?.signup_at)}</span>
+                Signup: <span className="text-white">{(details?.signup_at || session?.signup_at) ? formatDateTime(details?.signup_at || session?.signup_at) : "Not signed up"}</span>
               </p>
             </div>
           </section>

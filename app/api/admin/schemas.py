@@ -40,6 +40,7 @@ class SessionRecord(BaseModel):
     created_at: datetime
     last_activity: datetime
     authenticated_at: datetime | None = None
+    login_at: datetime | None = None
     signup_at: datetime | None = None
     status: Literal["active", "idle", "expired"]
     action_count: int = 0

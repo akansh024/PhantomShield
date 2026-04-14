@@ -21,7 +21,7 @@ from app.api.admin.schemas import (
 )
 from app.core.config import get_settings
 
-LIVE_ACTIVITY_WINDOW_MINUTES = 15
+LIVE_ACTIVITY_WINDOW_MINUTES = 5
 RECENT_SESSION_WINDOW_HOURS = 24
 RECENT_FORENSIC_WINDOW_MINUTES = 180
 DEFAULT_EVENTS_LIMIT = 100
@@ -59,13 +59,13 @@ _ACTION_CATALOG: dict[str, dict[str, Any]] = {
         "description": "The visitor searched the catalog.",
         "suspicious": False,
     },
-    "cart_add": {
+    "add_to_cart": {
         "label": "Item added to cart",
         "category": "Cart actions",
         "description": "A product was added to the shopping cart.",
         "suspicious": False,
     },
-    "cart_remove": {
+    "remove_from_cart": {
         "label": "Item removed from cart",
         "category": "Cart actions",
         "description": "A product was removed from the shopping cart.",
@@ -107,13 +107,13 @@ _ACTION_CATALOG: dict[str, dict[str, Any]] = {
         "description": "Authentication failed for supplied credentials.",
         "suspicious": True,
     },
-    "checkout_started": {
+    "checkout_start": {
         "label": "Checkout started",
         "category": "Checkout",
         "description": "The visitor started checkout.",
         "suspicious": False,
     },
-    "order_completed": {
+    "checkout_complete": {
         "label": "Order completed",
         "category": "Checkout",
         "description": "The visitor completed a purchase.",
@@ -447,6 +447,7 @@ class MongoAdminRepository:
             created_at=doc.get("created_at") or datetime.utcnow(),
             last_activity=doc.get("last_activity") or datetime.utcnow(),
             authenticated_at=doc.get("authenticated_at"),
+            login_at=doc.get("login_at"),
             signup_at=doc.get("signup_at"),
             status=status,
             action_count=int(action_count),
@@ -717,26 +718,27 @@ class MongoAdminRepository:
             return []
 
         sessions_coll = collections["sessions"]
-        twelve_hours_ago = datetime.utcnow() - timedelta(hours=12)
+        # Use a dynamic shorter window (1 hour) since we are tracking per minute
+        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
         base_query = self._base_production_query()
-        base_query["last_activity"] = {"$gt": twelve_hours_ago}
+        base_query["last_activity"] = {"$gt": one_hour_ago}
 
         pipeline = [
             {"$match": base_query},
             {
                 "$project": {
                     "user_id": 1,
-                    "hour": {
+                    "minute": {
                         "$dateTrunc": {
                             "date": "$last_activity",
-                            "unit": "hour",
+                            "unit": "minute",
                         }
                     },
                 }
             },
             {
                 "$group": {
-                    "_id": "$hour",
+                    "_id": "$minute",
                     "active_sessions": {"$sum": 1},
                     "unique_users": {"$addToSet": "$user_id"},
                 }

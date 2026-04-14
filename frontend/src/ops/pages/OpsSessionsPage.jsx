@@ -67,8 +67,8 @@ export default function OpsSessionsPage() {
           ? "Authenticated (email unavailable)"
           : "Not signed in"),
       sessionId: activeFocusedSession.session_id,
-      loginAt: activeFocusedSession.authenticated_at
-        ? formatDateTime(activeFocusedSession.authenticated_at)
+      loginAt: activeFocusedSession.login_at
+        ? formatDateTime(activeFocusedSession.login_at)
         : "Guest / no login",
       state: activeFocusedSession.routing_state,
       sessionType: activeFocusedSession.session_type || "guest",

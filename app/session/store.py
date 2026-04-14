@@ -90,6 +90,7 @@ class MongoSessionStore:
             "session_type": state.session_type,
             "source_host": state.source_host,
             "authenticated_at": state.authenticated_at,
+            "login_at": state.login_at,
             "signup_at": state.signup_at,
             "flags": state.flags,
         }
@@ -170,6 +171,7 @@ class MongoSessionStore:
             session_type=session_type,
             source_host=source_host,
             authenticated_at=doc.get("authenticated_at"),
+            login_at=doc.get("login_at"),
             signup_at=doc.get("signup_at"),
             flags=doc.get("flags", {}),
         )
@@ -228,6 +230,14 @@ class MongoSessionStore:
         except PyMongoError:
             pass
 
+    def update_session_identity(self, session_id: str, user: Any) -> None:
+        state = self.get_session(session_id)
+        if state:
+            state.user_id = str(user.id) if hasattr(user, "id") else str(user.get("id") or user.get("_id"))
+            state.user_name = user.name if hasattr(user, "name") else user.get("name")
+            state.user_email = user.email if hasattr(user, "email") else user.get("email")
+            self.save_session(state)
+
     def rotate_session(self, old_id: str) -> SessionState:
         collection = self._get_collection()
         
@@ -260,6 +270,7 @@ class MongoSessionStore:
                 session_type=old_state.session_type,
                 source_host=old_state.source_host,
                 authenticated_at=old_state.authenticated_at,
+                login_at=old_state.login_at,
                 signup_at=old_state.signup_at,
                 flags=old_state.flags.copy(),
             )
